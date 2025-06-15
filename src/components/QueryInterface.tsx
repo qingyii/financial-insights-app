@@ -12,7 +12,8 @@ import {
   Code,
   Separator,
   ScrollArea,
-  Callout
+  Callout,
+  Tabs
 } from '@radix-ui/themes';
 import {
   PaperPlaneIcon,
@@ -20,16 +21,20 @@ import {
   MagicWandIcon,
   QuestionMarkCircledIcon,
   InfoCircledIcon,
-  ClockIcon
+  ClockIcon,
+  BarChartIcon,
+  Share2Icon
 } from '@radix-ui/react-icons';
 import * as Accordion from '@radix-ui/react-accordion';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { QueryRequest, QueryResponse } from '@/models/types';
+import { DatabaseGraphVisualization } from './DatabaseGraphVisualization';
+import { QueryResultCharts } from './QueryResultCharts';
 
 const QueryInterface: React.FC = () => {
   const [query, setQuery] = useState('');
-  const [queryHistory, setQueryHistory] = useState<Array<{ query: string; timestamp: Date }>>([]);
+  const [queryHistory, setQueryHistory] = useState<Array<{ query: string; timestamp: Date; type: 'user' | 'followup' }>>([]);
   const [currentResponse, setCurrentResponse] = useState<QueryResponse | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -41,7 +46,7 @@ const QueryInterface: React.FC = () => {
     },
     onSuccess: (data) => {
       setCurrentResponse(data);
-      setQueryHistory(prev => [...prev, { query, timestamp: new Date() }]);
+      setQueryHistory(prev => [...prev, { query, timestamp: new Date(), type: 'user' }]);
       if (!data.clarificationNeeded) {
         setQuery('');
       }
@@ -80,6 +85,7 @@ const QueryInterface: React.FC = () => {
 
   const handleFollowUpQuestion = (question: string) => {
     setQuery(question);
+    setQueryHistory(prev => [...prev, { query: question, timestamp: new Date(), type: 'followup' }]);
   };
 
   const handleClarification = (suggestion: string) => {
@@ -123,6 +129,16 @@ const QueryInterface: React.FC = () => {
 
   return (
     <Box>
+      <Tabs.Root defaultValue="query">
+        <Tabs.List mb="4">
+          <Tabs.Trigger value="query">Query Interface</Tabs.Trigger>
+          <Tabs.Trigger value="schema">
+            <Share2Icon width="16" height="16" style={{ marginRight: '4px' }} />
+            Database Schema
+          </Tabs.Trigger>
+        </Tabs.List>
+        
+        <Tabs.Content value="query">
       <Card>
         <Heading size="5" mb="4">Natural Language Query Interface</Heading>
         
@@ -243,13 +259,26 @@ const QueryInterface: React.FC = () => {
                 </Accordion.Header>
                 <Accordion.Content>
                   <Card style={{ backgroundColor: 'var(--gray-3)' }}>
-                    <Code size="2">
-                      <pre style={{ margin: 0 }}>{currentResponse.sql}</pre>
-                    </Code>
+                    <Box style={{ 
+                      backgroundColor: 'var(--gray-4)', 
+                      padding: 'var(--space-3)',
+                      borderRadius: 'var(--radius-2)',
+                      border: '1px solid var(--gray-6)'
+                    }}>
+                      <Code size="2">
+                        <pre style={{ margin: 0, color: 'var(--ruby-11)' }}>{currentResponse.sql}</pre>
+                      </Code>
+                    </Box>
                     {currentResponse.explanation && (
-                      <Text size="2" color="gray" mt="3">
-                        {currentResponse.explanation}
-                      </Text>
+                      <Box mt="3" p="3" style={{ 
+                        backgroundColor: 'var(--blue-2)', 
+                        borderRadius: 'var(--radius-2)',
+                        border: '1px solid var(--blue-6)'
+                      }}>
+                        <Text size="2" color="blue">
+                          {currentResponse.explanation}
+                        </Text>
+                      </Box>
                     )}
                   </Card>
                 </Accordion.Content>
@@ -277,7 +306,7 @@ const QueryInterface: React.FC = () => {
                 </Accordion.Content>
               </Accordion.Item>
 
-              {/* Insights */}
+              {/* Insights with Charts */}
               {currentResponse.insights && currentResponse.insights.length > 0 && (
                 <Accordion.Item value="insights">
                   <Accordion.Header>
@@ -305,6 +334,13 @@ const QueryInterface: React.FC = () => {
                         </Box>
                       ))}
                     </Card>
+                    
+                    {/* Add charts for visual insights */}
+                    {currentResponse.results && currentResponse.results.length > 0 && (
+                      <Box mt="4">
+                        <QueryResultCharts data={currentResponse.results} queryType={query} />
+                      </Box>
+                    )}
                   </Accordion.Content>
                 </Accordion.Item>
               )}
@@ -332,16 +368,21 @@ const QueryInterface: React.FC = () => {
                       {currentResponse.followUpQuestions.map((question, idx) => (
                         <Box
                           key={idx}
-                          p="2"
+                          p="3"
                           mb="2"
                           style={{ 
-                            backgroundColor: 'var(--gray-2)', 
+                            backgroundColor: 'var(--green-2)', 
+                            border: '1px solid var(--green-6)',
                             borderRadius: 'var(--radius-2)',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
                           }}
                           onClick={() => handleFollowUpQuestion(question)}
                         >
-                          <Text size="2">{question}</Text>
+                          <Flex align="center" gap="2">
+                            <QuestionMarkCircledIcon color="var(--green-9)" />
+                            <Text size="2" color="green" weight="medium">{question}</Text>
+                          </Flex>
                         </Box>
                       ))}
                     </Card>
@@ -360,21 +401,44 @@ const QueryInterface: React.FC = () => {
           {queryHistory.slice(-5).reverse().map((item, idx) => (
             <Box
               key={idx}
-              p="2"
+              p="3"
               mb="2"
               style={{ 
-                backgroundColor: 'var(--gray-2)', 
+                backgroundColor: item.type === 'followup' ? 'var(--green-2)' : 'var(--blue-2)', 
+                border: `1px solid ${item.type === 'followup' ? 'var(--green-6)' : 'var(--blue-6)'}`,
                 borderRadius: 'var(--radius-2)',
                 cursor: 'pointer'
               }}
               onClick={() => setQuery(item.query)}
             >
-              <Text size="2">{item.query}</Text>
+              <Flex justify="between" align="center">
+                <Text size="2" weight="medium">{item.query}</Text>
+                <Badge color={item.type === 'followup' ? 'green' : 'blue'} size="1">
+                  {item.type === 'followup' ? 'Follow-up' : 'User Query'}
+                </Badge>
+              </Flex>
               <Text size="1" color="gray">{item.timestamp.toLocaleTimeString()}</Text>
             </Box>
           ))}
         </Card>
       )}
+        </Tabs.Content>
+        
+        <Tabs.Content value="schema">
+          <Card>
+            <Heading size="5" mb="4">
+              <Flex align="center" gap="2">
+                <Share2Icon />
+                Database Schema Visualization
+              </Flex>
+            </Heading>
+            <Text size="2" color="gray" mb="4">
+              Interactive graph showing the relationships between fact and dimension tables in our star schema
+            </Text>
+            <DatabaseGraphVisualization />
+          </Card>
+        </Tabs.Content>
+      </Tabs.Root>
     </Box>
   );
 };

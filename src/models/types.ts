@@ -197,6 +197,8 @@ export interface QueryResponse {
   sql: string;
   results: any[];
   insights: string[];
+  explanation?: string;
+  followUpQuestions?: string[];
   clarificationNeeded?: {
     ambiguity: string;
     suggestions: string[];
