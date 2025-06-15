@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Card, Heading, Grid, Text, Badge, Flex, Progress } from '@radix-ui/themes';
+import { Box, Card, Heading, Grid, Text, Badge, Flex, Progress, Tabs } from '@radix-ui/themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as d3 from 'd3';
 import { OrderFlow } from '@/models/types';
+import OrderLifecycleAnimation from './OrderLifecycleAnimation';
 
 interface AnimatedOrder {
   id: string;
@@ -177,8 +178,19 @@ const OrderFlowVisualization: React.FC = () => {
 
   return (
     <Box>
-      <Card>
-        <Heading size="5" mb="4">Live Order Flow & Lifecycle Visualization</Heading>
+      <Tabs.Root defaultValue="lifecycle">
+        <Tabs.List mb="4">
+          <Tabs.Trigger value="lifecycle">Order Lifecycle Process</Tabs.Trigger>
+          <Tabs.Trigger value="realtime">Real-time Order Flow</Tabs.Trigger>
+        </Tabs.List>
+        
+        <Tabs.Content value="lifecycle">
+          <OrderLifecycleAnimation />
+        </Tabs.Content>
+        
+        <Tabs.Content value="realtime">
+          <Card>
+            <Heading size="5" mb="4">Live Order Flow & Lifecycle Visualization</Heading>
         
         {/* Lifecycle Legend */}
         <Box mb="4">
@@ -311,7 +323,9 @@ const OrderFlowVisualization: React.FC = () => {
           ))}
         </Grid>
       </Card>
-    </Box>
+    </Tabs.Content>
+  </Tabs.Root>
+  </Box>
   );
 };
 
