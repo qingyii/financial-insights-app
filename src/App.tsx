@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Theme, Container, Tabs, Box, Heading } from '@radix-ui/themes';
 import '@radix-ui/themes/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

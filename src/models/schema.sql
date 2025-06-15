@@ -150,12 +150,15 @@ SELECT
     fo.order_id,
     fo.order_timestamp as full_datetime,
     ds.symbol,
+    ds.security_name,
     ds.security_type,
     dtr.trader_name,
     dot.order_type,
     dot.order_side,
     fo.order_quantity,
     fo.order_price,
+    fo.average_fill_price,
+    fo.filled_quantity,
     fo.order_status,
     fo.pnl
 FROM fact_trading_orders fo

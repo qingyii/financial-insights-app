@@ -10,8 +10,35 @@ import {
   FactTradingOrder
 } from '@/models/types';
 
-// Mock data pools
-const EQUITY_SYMBOLS = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'JPM', 'BAC', 'NVDA', 'META', 'NFLX'];
+// Mock data pools with realistic market data
+const EQUITY_DATA = {
+  'AAPL': { name: 'Apple Inc.', price: 195.89, description: 'Technology company that designs and manufactures consumer electronics, software, and services' },
+  'GOOGL': { name: 'Alphabet Inc. Class A', price: 175.43, description: 'Multinational technology company specializing in internet services and products' },
+  'MSFT': { name: 'Microsoft Corporation', price: 425.17, description: 'Technology company developing computer software, consumer electronics, and cloud services' },
+  'AMZN': { name: 'Amazon.com Inc.', price: 186.51, description: 'E-commerce and cloud computing company offering online retail and web services' },
+  'TSLA': { name: 'Tesla Inc.', price: 248.98, description: 'Electric vehicle and clean energy company manufacturing electric cars and energy storage' },
+  'JPM': { name: 'JPMorgan Chase & Co.', price: 249.85, description: 'Multinational investment bank and financial services holding company' },
+  'BAC': { name: 'Bank of America Corp.', price: 45.78, description: 'Multinational investment bank and financial services holding company' },
+  'NVDA': { name: 'NVIDIA Corporation', price: 878.54, description: 'Technology company designing graphics processing units for gaming and professional markets' },
+  'META': { name: 'Meta Platforms Inc.', price: 563.33, description: 'Technology company operating social networking platforms including Facebook and Instagram' },
+  'NFLX': { name: 'Netflix Inc.', price: 825.73, description: 'Streaming entertainment service with TV series, documentaries and feature films' }
+};
+
+const SECURITY_TYPE_DESCRIPTIONS = {
+  'EQUITY': 'Common stock representing ownership shares in a corporation',
+  'OPTION': 'Financial derivative giving the right to buy or sell an underlying asset at a specific price',
+  'OTC_DERIVATIVE': 'Over-the-counter derivative contract traded directly between parties outside formal exchanges'
+};
+
+const ORDER_TYPE_DESCRIPTIONS = {
+  'MARKET': 'Order to buy or sell immediately at the best available current price',
+  'LIMIT': 'Order to buy or sell at a specific price or better',
+  'STOP': 'Order that becomes a market order when the stop price is reached',
+  'STOP_LIMIT': 'Order that becomes a limit order when the stop price is reached',
+  'TRAILING_STOP': 'Stop order that adjusts with favorable price movements'
+};
+
+const EQUITY_SYMBOLS = Object.keys(EQUITY_DATA);
 const OPTION_UNDERLYINGS = ['SPY', 'QQQ', 'AAPL', 'TSLA', 'NVDA'];
 const EXCHANGES = ['NYSE', 'NASDAQ', 'CBOE', 'CME', 'OTC'];
 const DESKS = ['Equity Trading', 'Derivatives', 'Fixed Income', 'FX', 'Commodities'];
@@ -41,19 +68,52 @@ export class MockDataGenerator {
 
   private generateEquities() {
     EQUITY_SYMBOLS.forEach((symbol, idx) => {
+      const equityData = EQUITY_DATA[symbol as keyof typeof EQUITY_DATA];
       this.securities.push({
         security_id: idx + 1,
         symbol,
-        security_name: `${symbol} Common Stock`,
+        security_name: equityData.name,
         security_type: SecurityType.EQUITY,
-        exchange: Math.random() > 0.5 ? 'NYSE' : 'NASDAQ',
-        sector: this.randomFrom(['Technology', 'Finance', 'Healthcare', 'Consumer', 'Energy']),
-        industry: this.randomFrom(['Software', 'Banks', 'Biotech', 'Retail', 'Oil & Gas']),
+        exchange: ['AAPL', 'MSFT', 'JPM', 'BAC'].includes(symbol) ? 'NASDAQ' : 'NYSE',
+        sector: this.getSectorForSymbol(symbol),
+        industry: this.getIndustryForSymbol(symbol),
         market_cap_category: this.randomFrom(['LARGE', 'MID'] as any),
         currency: 'USD',
         is_active: true
       });
     });
+  }
+
+  private getSectorForSymbol(symbol: string): string {
+    const sectorMap: Record<string, string> = {
+      'AAPL': 'Technology',
+      'GOOGL': 'Technology', 
+      'MSFT': 'Technology',
+      'AMZN': 'Consumer Discretionary',
+      'TSLA': 'Consumer Discretionary',
+      'JPM': 'Financials',
+      'BAC': 'Financials',
+      'NVDA': 'Technology',
+      'META': 'Communication Services',
+      'NFLX': 'Communication Services'
+    };
+    return sectorMap[symbol] || 'Technology';
+  }
+
+  private getIndustryForSymbol(symbol: string): string {
+    const industryMap: Record<string, string> = {
+      'AAPL': 'Consumer Electronics',
+      'GOOGL': 'Internet & Direct Marketing',
+      'MSFT': 'Software',
+      'AMZN': 'Internet Retail',
+      'TSLA': 'Electric Vehicles', 
+      'JPM': 'Investment Banking',
+      'BAC': 'Commercial Banking',
+      'NVDA': 'Semiconductors',
+      'META': 'Social Media',
+      'NFLX': 'Entertainment Streaming'
+    };
+    return industryMap[symbol] || 'Software';
   }
 
   private generateDerivatives() {
@@ -140,7 +200,17 @@ export class MockDataGenerator {
     const orderType = this.randomFrom(Object.values(OrderType));
     const orderSide = this.randomFrom(Object.values(OrderSide));
     const quantity = Math.round(Math.random() * 10000 + 100);
-    const basePrice = 50 + Math.random() * 450;
+    // Use realistic market prices
+    let basePrice = 100;
+    if (security.security_type === SecurityType.EQUITY && EQUITY_DATA[security.symbol as keyof typeof EQUITY_DATA]) {
+      const equityData = EQUITY_DATA[security.symbol as keyof typeof EQUITY_DATA];
+      basePrice = equityData.price + (Math.random() - 0.5) * equityData.price * 0.02; // ±2% variation
+    } else if (security.security_type === SecurityType.OPTION) {
+      basePrice = 5 + Math.random() * 45; // Options typically $5-50
+    } else {
+      basePrice = 50 + Math.random() * 450; // OTC derivatives
+    }
+    
     const orderPrice = orderType === OrderType.MARKET ? undefined : Math.round(basePrice * 100) / 100;
     
     const status = this.randomFrom(Object.values(OrderStatus));
@@ -216,6 +286,18 @@ export class MockDataGenerator {
     return this.counterparties;
   }
 
+  public getSymbolDescription(symbol: string): string {
+    return EQUITY_DATA[symbol as keyof typeof EQUITY_DATA]?.description || 'Financial instrument';
+  }
+
+  public getSecurityTypeDescription(securityType: string): string {
+    return SECURITY_TYPE_DESCRIPTIONS[securityType as keyof typeof SECURITY_TYPE_DESCRIPTIONS] || 'Financial security';
+  }
+
+  public getOrderTypeDescription(orderType: string): string {
+    return ORDER_TYPE_DESCRIPTIONS[orderType as keyof typeof ORDER_TYPE_DESCRIPTIONS] || 'Trading order';
+  }
+
   private randomFrom<T>(array: T[]): T {
     return array[Math.floor(Math.random() * array.length)];
   }
@@ -226,8 +308,12 @@ export class MockDataGenerator {
   }
 
   private getCurrentTimeId(): number {
-    // In real implementation, this would map to dim_time table
-    return Math.floor(Date.now() / 1000);
+    // Generate a time_id that matches existing records in dim_time
+    // Round to nearest 5-minute interval to match the time dimension
+    const now = new Date();
+    now.setSeconds(0, 0); // Reset seconds and milliseconds
+    now.setMinutes(Math.floor(now.getMinutes() / 5) * 5); // Round to 5-minute intervals
+    return Math.floor(now.getTime() / 1000);
   }
 
   private getOrderTypeId(orderType: OrderType, orderSide: OrderSide): number {

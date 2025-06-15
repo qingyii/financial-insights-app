@@ -1,9 +1,10 @@
 import React from 'react';
 import { Box, Grid, Card, Text, Heading, Flex, Badge, Table } from '@radix-ui/themes';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowUpIcon, ArrowDownIcon, BarChartIcon, ActivityLogIcon } from '@radix-ui/react-icons';
+import { mockDataGenerator } from '@/services/mockDataGenerator';
 
 const COLORS = ['#E73C7E', '#23A6D5', '#23D5AB', '#EE7752', '#E8B4B8'];
 
@@ -134,7 +135,7 @@ const DashboardOverview: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-6)" />
                   <XAxis dataKey="date" stroke="var(--gray-11)" />
                   <YAxis stroke="var(--gray-11)" />
-                  <Tooltip 
+                  <RechartsTooltip 
                     contentStyle={{ backgroundColor: 'var(--gray-3)', border: '1px solid var(--gray-6)', borderRadius: '4px' }}
                     labelStyle={{ color: 'var(--gray-12)' }}
                     itemStyle={{ color: 'var(--gray-12)' }}
@@ -164,11 +165,11 @@ const DashboardOverview: React.FC = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {getSecurityTypeDistribution().map((entry, index) => (
+                  {getSecurityTypeDistribution().map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
+                <RechartsTooltip 
                   contentStyle={{ backgroundColor: 'var(--gray-3)', border: '1px solid var(--gray-6)', borderRadius: '4px' }}
                   labelStyle={{ color: 'var(--gray-12)' }}
                   itemStyle={{ color: 'var(--gray-12)' }}
@@ -199,13 +200,25 @@ const DashboardOverview: React.FC = () => {
                 {recentOrders?.slice(0, 10).map((order: any, idx: number) => (
                   <Table.Row key={idx}>
                     <Table.Cell>
-                      {new Date(order.full_datetime).toLocaleTimeString()}
+                      {new Date(order.full_datetime).toLocaleTimeString('en-US', { hour12: false })}
                     </Table.Cell>
                     <Table.Cell>
-                      <Text weight="bold">{order.symbol}</Text>
+                      <Text 
+                        weight="bold" 
+                        style={{ cursor: 'help' }}
+                        title={mockDataGenerator.getSymbolDescription(order.symbol)}
+                      >
+                        {order.symbol}
+                      </Text>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge variant="soft">{order.security_type}</Badge>
+                      <Badge 
+                        variant="soft" 
+                        style={{ cursor: 'help' }}
+                        title={mockDataGenerator.getSecurityTypeDescription(order.security_type)}
+                      >
+                        {order.security_type}
+                      </Badge>
                     </Table.Cell>
                     <Table.Cell>
                       <Badge color={order.order_side === 'BUY' ? 'green' : 'red'}>
@@ -216,7 +229,7 @@ const DashboardOverview: React.FC = () => {
                       {order.order_quantity?.toLocaleString()}
                     </Table.Cell>
                     <Table.Cell align="right">
-                      ${order.order_price?.toFixed(2) || 'Market'}
+                      ${order.average_fill_price?.toFixed(2) || order.order_price?.toFixed(2) || 'Market'}
                     </Table.Cell>
                     <Table.Cell>
                       <Badge 
