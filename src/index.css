@@ -1,0 +1,52 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Override Radix Theme dark colors to black and light gray */
+.dark, .dark-theme {
+  --gray-1: #000000 !important;
+  --gray-2: #0a0a0a !important;
+  --gray-3: #141414 !important;
+  --gray-4: #1f1f1f !important;
+  --gray-5: #292929 !important;
+  --gray-6: #333333 !important;
+  --gray-7: #3d3d3d !important;
+  --gray-8: #484848 !important;
+  --gray-9: #606060 !important;
+  --gray-10: #6e6e6e !important;
+  --gray-11: #b4b4b4 !important;
+  --gray-12: #eeeeee !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #484848;
+}
