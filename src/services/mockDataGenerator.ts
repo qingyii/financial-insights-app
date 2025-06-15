@@ -12,22 +12,33 @@ import {
 
 // Mock data pools with realistic market data
 const EQUITY_DATA = {
-  'AAPL': { name: 'Apple Inc.', price: 195.89, description: 'Technology company that designs and manufactures consumer electronics, software, and services' },
-  'GOOGL': { name: 'Alphabet Inc. Class A', price: 175.43, description: 'Multinational technology company specializing in internet services and products' },
-  'MSFT': { name: 'Microsoft Corporation', price: 425.17, description: 'Technology company developing computer software, consumer electronics, and cloud services' },
-  'AMZN': { name: 'Amazon.com Inc.', price: 186.51, description: 'E-commerce and cloud computing company offering online retail and web services' },
-  'TSLA': { name: 'Tesla Inc.', price: 248.98, description: 'Electric vehicle and clean energy company manufacturing electric cars and energy storage' },
-  'JPM': { name: 'JPMorgan Chase & Co.', price: 249.85, description: 'Multinational investment bank and financial services holding company' },
-  'BAC': { name: 'Bank of America Corp.', price: 45.78, description: 'Multinational investment bank and financial services holding company' },
-  'NVDA': { name: 'NVIDIA Corporation', price: 878.54, description: 'Technology company designing graphics processing units for gaming and professional markets' },
-  'META': { name: 'Meta Platforms Inc.', price: 563.33, description: 'Technology company operating social networking platforms including Facebook and Instagram' },
-  'NFLX': { name: 'Netflix Inc.', price: 825.73, description: 'Streaming entertainment service with TV series, documentaries and feature films' }
+  'AAPL.O': { name: 'Apple Inc.', price: 195.89, description: 'Technology company that designs and manufactures consumer electronics, software, and services' },
+  'GOOGL.O': { name: 'Alphabet Inc. Class A', price: 175.43, description: 'Multinational technology company specializing in internet services and products' },
+  'MSFT.O': { name: 'Microsoft Corporation', price: 425.17, description: 'Technology company developing computer software, consumer electronics, and cloud services' },
+  'AMZN.O': { name: 'Amazon.com Inc.', price: 186.51, description: 'E-commerce and cloud computing company offering online retail and web services' },
+  'TSLA.O': { name: 'Tesla Inc.', price: 248.98, description: 'Electric vehicle and clean energy company manufacturing electric cars and energy storage' },
+  'JPM.N': { name: 'JPMorgan Chase & Co.', price: 249.85, description: 'Multinational investment bank and financial services holding company' },
+  'BAC.N': { name: 'Bank of America Corp.', price: 45.78, description: 'Multinational investment bank and financial services holding company' },
+  'NVDA.O': { name: 'NVIDIA Corporation', price: 878.54, description: 'Technology company designing graphics processing units for gaming and professional markets' },
+  'META.O': { name: 'Meta Platforms Inc.', price: 563.33, description: 'Technology company operating social networking platforms including Facebook and Instagram' },
+  'NFLX.O': { name: 'Netflix Inc.', price: 825.73, description: 'Streaming entertainment service with TV series, documentaries and feature films' }
 };
 
 const SECURITY_TYPE_DESCRIPTIONS = {
   'EQUITY': 'Common stock representing ownership shares in a corporation',
   'OPTION': 'Financial derivative giving the right to buy or sell an underlying asset at a specific price',
-  'OTC_DERIVATIVE': 'Over-the-counter derivative contract traded directly between parties outside formal exchanges'
+  'OTC_DERIVATIVE': 'Over-the-counter derivative contract traded directly between parties outside formal exchanges',
+  'BOND': 'Fixed income instrument representing a loan made by an investor to a borrower',
+  'FUTURE': 'Standardized forward contract to buy or sell an asset at a predetermined price at a specified time',
+  'MONEY_MARKET': 'Short-term debt securities with high liquidity and very short maturities',
+  'CASH': 'Currency holdings and demand deposits used for immediate transactions',
+  'FX_SPOT': 'Foreign exchange transaction for immediate delivery and settlement',
+  'FX_FORWARD': 'Agreement to exchange currencies at a future date at a predetermined rate',
+  'SWAP': 'Derivative contract to exchange cash flows or liabilities from two different financial instruments',
+  'CREDIT_DEFAULT_SWAP': 'Credit derivative providing protection against credit risk of a reference entity',
+  'REPO': 'Repurchase agreement for short-term borrowing through sale and buyback of securities',
+  'COMMODITY': 'Physical goods such as metals, energy, or agricultural products traded on exchanges',
+  'ETF': 'Exchange-traded fund tracking an index, commodity, bonds, or basket of assets'
 };
 
 const ORDER_TYPE_DESCRIPTIONS = {
@@ -58,6 +69,7 @@ export class MockDataGenerator {
     // Generate securities
     this.generateEquities();
     this.generateDerivatives();
+    this.generateOtherAssetClasses();
     
     // Generate traders
     this.generateTraders();
@@ -74,7 +86,7 @@ export class MockDataGenerator {
         symbol,
         security_name: equityData.name,
         security_type: SecurityType.EQUITY,
-        exchange: ['AAPL', 'MSFT', 'JPM', 'BAC'].includes(symbol) ? 'NASDAQ' : 'NYSE',
+        exchange: symbol.endsWith('.O') ? 'NASDAQ' : 'NYSE',
         sector: this.getSectorForSymbol(symbol),
         industry: this.getIndustryForSymbol(symbol),
         market_cap_category: this.randomFrom(['LARGE', 'MID'] as any),
@@ -85,6 +97,7 @@ export class MockDataGenerator {
   }
 
   private getSectorForSymbol(symbol: string): string {
+    const baseSymbol = symbol.split('.')[0];
     const sectorMap: Record<string, string> = {
       'AAPL': 'Technology',
       'GOOGL': 'Technology', 
@@ -97,7 +110,7 @@ export class MockDataGenerator {
       'META': 'Communication Services',
       'NFLX': 'Communication Services'
     };
-    return sectorMap[symbol] || 'Technology';
+    return sectorMap[baseSymbol] || 'Technology';
   }
 
   private getIndustryForSymbol(symbol: string): string {
@@ -192,8 +205,335 @@ export class MockDataGenerator {
     });
   }
 
+  private generateOtherAssetClasses() {
+    let secId = this.securities.length + 100;
+    
+    // Add sample securities for each asset class
+    // Bonds - Government and Corporate
+    const bonds = [
+      'US10Y=RR', 'US5Y=RR', 'US2Y=RR', 'US30Y=RR',
+      'DE10Y=RR', 'GB10Y=RR', 'JP10Y=RR', 'FR10Y=RR',
+      'XS1234567890=', 'XS0987654321=' // Corporate bonds ISIN
+    ];
+    bonds.forEach(symbol => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: symbol.startsWith('XS') ? 
+          `Corporate Bond ${symbol}` : 
+          `${symbol.replace('=RR', '')} Government Bond Yield`,
+        security_type: SecurityType.BOND,
+        exchange: 'FIXED_INCOME',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // ETFs
+    const etfs = {
+      'SPY.P': 'SPDR S&P 500 ETF Trust',
+      'QQQ.O': 'Invesco QQQ Trust',
+      'IWM.P': 'iShares Russell 2000 ETF',
+      'GLD.P': 'SPDR Gold Shares',
+      'TLT.O': 'iShares 20+ Year Treasury Bond ETF'
+    };
+    Object.entries(etfs).forEach(([symbol, name]) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.ETF,
+        exchange: symbol.endsWith('.O') ? 'NASDAQ' : 'NYSE',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // FX Spot and Forward
+    const fxSpot = ['EUR=', 'GBP=', 'JPY=', 'CHF=', 'AUD=', 'CAD='];
+    fxSpot.forEach(symbol => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: `${symbol.replace('=', '')}/USD Spot Exchange Rate`,
+        security_type: SecurityType.FX_SPOT,
+        exchange: 'FX',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // FX Forwards
+    const fxForwards = ['EUR1M=', 'EUR3M=', 'GBP1M=', 'JPY3M='];
+    fxForwards.forEach(symbol => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: `${symbol} Forward`,
+        security_type: SecurityType.FX_FORWARD,
+        exchange: 'FX',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // Commodities
+    const commodities = [
+      { symbol: 'GCc1', name: 'Gold Front Month' },
+      { symbol: 'SIc1', name: 'Silver Front Month' },
+      { symbol: 'CLc1', name: 'WTI Crude Oil Front Month' },
+      { symbol: 'COc1', name: 'Brent Crude Oil Front Month' },
+      { symbol: 'NGc1', name: 'Natural Gas Front Month' },
+      { symbol: 'Cc1', name: 'Corn Front Month' },
+      { symbol: 'Wc1', name: 'Wheat Front Month' }
+    ];
+    commodities.forEach(({ symbol, name }) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.COMMODITY,
+        exchange: 'CME',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // Money Market Instruments
+    const moneyMarket = [
+      { symbol: 'USCP3M=', name: 'US Commercial Paper 3M' },
+      { symbol: 'EURIBOR3M=', name: 'EURIBOR 3 Month' },
+      { symbol: 'SOFR=', name: 'SOFR Rate' },
+      { symbol: 'USTB3M=', name: 'US T-Bill 3 Month' }
+    ];
+    moneyMarket.forEach(({ symbol, name }) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.MONEY_MARKET,
+        exchange: 'MONEY_MARKET',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // Interest Rate Swaps
+    const swaps = [
+      { symbol: 'USDSW10Y=', name: 'USD 10Y Interest Rate Swap' },
+      { symbol: 'EURSW5Y=', name: 'EUR 5Y Interest Rate Swap' },
+      { symbol: 'GBPSW10Y=', name: 'GBP 10Y Interest Rate Swap' }
+    ];
+    swaps.forEach(({ symbol, name }) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.SWAP,
+        exchange: 'OTC',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // Repos
+    const repos = [
+      { symbol: 'USREPO/ON=', name: 'US Treasury Overnight Repo' },
+      { symbol: 'EUREPO/TN=', name: 'EUR Tomorrow/Next Repo' },
+      { symbol: 'GCREPO/1W=', name: 'General Collateral 1 Week Repo' }
+    ];
+    repos.forEach(({ symbol, name }) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.REPO,
+        exchange: 'REPO',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // Credit Default Swaps
+    const cds = [
+      { symbol: 'CDXIG5Y=', name: 'CDX IG 5Y Index' },
+      { symbol: 'CDXHY5Y=', name: 'CDX HY 5Y Index' },
+      { symbol: 'ITRX5Y=', name: 'iTraxx Europe 5Y' }
+    ];
+    cds.forEach(({ symbol, name }) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.CREDIT_DEFAULT_SWAP,
+        exchange: 'OTC',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // Futures
+    const futures = [
+      { symbol: 'ESH5:', name: 'E-mini S&P 500 Mar 2025' },
+      { symbol: 'NQM5:', name: 'E-mini NASDAQ Jun 2025' },
+      { symbol: 'YMZ4:', name: 'E-mini Dow Dec 2024' },
+      { symbol: 'ZBH5:', name: 'US 30Y Treasury Bond Mar 2025' }
+    ];
+    futures.forEach(({ symbol, name }) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.FUTURE,
+        exchange: 'CME',
+        currency: 'USD',
+        is_active: true
+      });
+    });
+    
+    // Cash
+    const cash = [
+      { symbol: 'USD=X', name: 'US Dollar Cash' },
+      { symbol: 'EUR=X', name: 'Euro Cash' },
+      { symbol: 'GBP=X', name: 'British Pound Cash' }
+    ];
+    cash.forEach(({ symbol, name }) => {
+      this.securities.push({
+        security_id: secId++,
+        symbol,
+        security_name: name,
+        security_type: SecurityType.CASH,
+        exchange: 'CASH',
+        currency: symbol.substring(0, 3),
+        is_active: true
+      });
+    });
+  }
+
+  private getOrCreateSecurityByType(securityType: SecurityType): DimSecurity {
+    // Try to find existing security of this type
+    const existing = this.securities.find(s => s.security_type === securityType);
+    if (existing && Math.random() > 0.5) return existing;
+    
+    // Create new security
+    const securityId = this.securities.length + 2000 + Math.floor(Math.random() * 1000);
+    let symbol = '';
+    let name = '';
+    let exchange = 'OTC';
+    
+    switch (securityType) {
+      case SecurityType.BOND:
+        symbol = `${this.randomFrom(['US', 'DE', 'JP', 'GB'])}${this.randomFrom(['2Y', '5Y', '10Y', '30Y'])}=RR`;
+        name = `${symbol} Government Bond`;
+        exchange = 'FIXED_INCOME';
+        break;
+      case SecurityType.MONEY_MARKET:
+        symbol = `${this.randomFrom(['USCP', 'USCD', 'EUBA', 'USTB'])}${Math.floor(Math.random() * 90 + 1)}D=`;
+        name = `${symbol} Money Market`;
+        break;
+      case SecurityType.FX_SPOT:
+        symbol = `${this.randomFrom(['EUR', 'GBP', 'JPY', 'CHF'])}=`;
+        name = `${symbol} Spot`;
+        exchange = 'FX';
+        break;
+      case SecurityType.FX_FORWARD:
+        symbol = `${this.randomFrom(['EUR', 'GBP', 'JPY'])}${this.randomFrom(['1M', '3M', '6M'])}=`;
+        name = `${symbol} Forward`;
+        exchange = 'FX';
+        break;
+      case SecurityType.SWAP:
+        symbol = `IRS-${this.randomFrom(['USD', 'EUR'])}-${this.randomFrom(['5Y', '10Y', '30Y'])}`;
+        name = `${symbol} Interest Rate Swap`;
+        break;
+      case SecurityType.CREDIT_DEFAULT_SWAP:
+        symbol = `CDS-${this.randomFrom(['IG', 'HY', 'EM'])}-${this.randomFrom(['5Y', '10Y'])}`;
+        name = `${symbol} Credit Default Swap`;
+        break;
+      case SecurityType.REPO:
+        symbol = `REPO-${this.randomFrom(['ON', 'TN', '1W', '1M'])}`;
+        name = `${symbol} Repurchase Agreement`;
+        break;
+      case SecurityType.COMMODITY:
+        const commodities = [
+          { sym: 'CLc1', n: 'WTI Crude Oil Front Month' },
+          { sym: 'GCc1', n: 'Gold Front Month' },
+          { sym: 'SIc1', n: 'Silver Front Month' },
+          { sym: 'NGc1', n: 'Natural Gas Front Month' }
+        ];
+        const commodity = this.randomFrom(commodities);
+        symbol = commodity.sym;
+        name = commodity.n;
+        exchange = 'CME';
+        break;
+      case SecurityType.ETF:
+        const etfMap = {
+          'SPY.P': 'SPDR S&P 500 ETF Trust',
+          'QQQ.O': 'Invesco QQQ Trust',
+          'IWM.P': 'iShares Russell 2000 ETF',
+          'DIA.P': 'SPDR Dow Jones Industrial Average ETF',
+          'GLD.P': 'SPDR Gold Shares',
+          'TLT.O': 'iShares 20+ Year Treasury Bond ETF',
+          'VXX.P': 'iPath S&P 500 VIX Short-Term Futures ETN'
+        };
+        const etfSymbol = this.randomFrom(Object.keys(etfMap));
+        symbol = etfSymbol;
+        name = etfMap[etfSymbol as keyof typeof etfMap];
+        exchange = 'NYSE';
+        break;
+      case SecurityType.FUTURE:
+        const futureMonth = this.randomFrom(['H', 'M', 'U', 'Z']);
+        const futureYear = new Date().getFullYear();
+        symbol = `${this.randomFrom(['ES', 'NQ', 'YM'])}${futureMonth}${futureYear}:`;
+        name = `${symbol} Future`;
+        exchange = 'CME';
+        break;
+      case SecurityType.CASH:
+        symbol = this.randomFrom(['USD', 'EUR', 'GBP', 'JPY', 'CHF']);
+        name = `${symbol} Cash`;
+        break;
+      case SecurityType.EQUITY:
+        return this.randomFrom(this.securities.filter(s => s.security_type === SecurityType.EQUITY));
+      case SecurityType.OPTION:
+        return this.randomFrom(this.securities.filter(s => s.security_type === SecurityType.OPTION));
+      default:
+        return this.randomFrom(this.securities);
+    }
+    
+    const newSecurity: DimSecurity = {
+      security_id: securityId,
+      symbol,
+      security_name: name,
+      security_type: securityType,
+      exchange,
+      currency: 'USD',
+      is_active: true
+    };
+    
+    this.securities.push(newSecurity);
+    return newSecurity;
+  }
+
   public generateRealtimeOrder(): FactTradingOrder {
-    const security = this.randomFrom(this.securities);
+    // Always create diverse order types for better distribution
+    const securityType = this.randomFrom([
+      SecurityType.EQUITY,
+      SecurityType.BOND,
+      SecurityType.OTC_DERIVATIVE,
+      SecurityType.FX_SPOT,
+      SecurityType.SWAP,
+      SecurityType.MONEY_MARKET,
+      SecurityType.REPO,
+      SecurityType.CREDIT_DEFAULT_SWAP,
+      SecurityType.COMMODITY,
+      SecurityType.ETF,
+      SecurityType.FX_FORWARD,
+      SecurityType.FUTURE,
+      SecurityType.OPTION,
+      SecurityType.CASH
+    ]);
+    
+    // Get or create security of this type
+    const security = this.getOrCreateSecurityByType(securityType);
     const trader = this.randomFrom(this.traders);
     const counterparty = this.randomFrom(this.counterparties);
     
@@ -207,8 +547,18 @@ export class MockDataGenerator {
       basePrice = equityData.price + (Math.random() - 0.5) * equityData.price * 0.02; // ±2% variation
     } else if (security.security_type === SecurityType.OPTION) {
       basePrice = 5 + Math.random() * 45; // Options typically $5-50
+    } else if (security.security_type === SecurityType.BOND) {
+      basePrice = 95 + Math.random() * 10; // Bonds typically trade near par (100)
+    } else if (security.security_type === SecurityType.FX_SPOT || security.security_type === SecurityType.FX_FORWARD) {
+      basePrice = 0.8 + Math.random() * 1.5; // FX rates
+    } else if (security.security_type === SecurityType.COMMODITY) {
+      basePrice = 20 + Math.random() * 150; // Commodity prices vary widely
+    } else if (security.security_type === SecurityType.MONEY_MARKET || security.security_type === SecurityType.REPO) {
+      basePrice = 99 + Math.random() * 2; // Money market instruments trade near par
+    } else if (security.security_type === SecurityType.ETF) {
+      basePrice = 100 + Math.random() * 400; // ETF prices
     } else {
-      basePrice = 50 + Math.random() * 450; // OTC derivatives
+      basePrice = 50 + Math.random() * 450; // Other derivatives
     }
     
     const orderPrice = orderType === OrderType.MARKET ? undefined : Math.round(basePrice * 100) / 100;

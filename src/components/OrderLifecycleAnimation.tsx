@@ -21,11 +21,11 @@ const orderSteps: OrderStep[] = [
     id: 1,
     title: "Order Initiation",
     duration: 4,
-    description: "BlackRock Inc. submits buy order for 50,000 AAPL shares",
+    description: "BlackRock Inc. submits buy order for 50,000 AAPL.O shares",
     details: [
       "Client: BlackRock Incorporated",
       "AUM: $8.5 billion",
-      "Order: BUY 50,000 AAPL shares",
+      "Order: BUY 50,000 AAPL.O shares",
       "Trader: Sarah Chen (TR-001)",
       "Desk: Equity Trading"
     ],
@@ -46,7 +46,7 @@ const orderSteps: OrderStep[] = [
     duration: 3,
     description: "Validating security details and checking market conditions",
     details: [
-      "Symbol: AAPL (Apple Inc.)",
+      "Symbol: AAPL.O (Apple Inc.)",
       "Asset Class: Large-cap Equity",
       "Sector: Technology",
       "Exchange: NASDAQ",
@@ -59,9 +59,9 @@ const orderSteps: OrderStep[] = [
       "Liquidity check: 45M shares traded"
     ],
     metrics: [
-      { label: "Bid Price", value: "$185.48" },
-      { label: "Ask Price", value: "$185.52" },
-      { label: "Last Trade", value: "$185.50" },
+      { label: "Bid Price", value: "$195.85" },
+      { label: "Ask Price", value: "$195.93" },
+      { label: "Last Trade", value: "$195.89" },
       { label: "Daily Volume", value: "45M shares" }
     ]
   },
@@ -72,10 +72,10 @@ const orderSteps: OrderStep[] = [
     description: "Executing order in the market at target price",
     details: [
       "Trade ID: T-0001234",
-      "Execution Price: $185.50",
+      "Execution Price: $195.89",
       "Quantity: 50,000 shares",
-      "Gross Value: $9,275,000",
-      "Commission: $9,275 (10 bps)"
+      "Gross Value: $9,794,500",
+      "Commission: $9,795 (10 bps)"
     ],
     dataAccess: [
       "Creating record in FACT_TRADES",
@@ -85,9 +85,9 @@ const orderSteps: OrderStep[] = [
       "Linking to date dimension"
     ],
     metrics: [
-      { label: "Execution Price", value: "$185.50" },
-      { label: "Gross Value", value: "$9,275,000" },
-      { label: "Commission", value: "$9,275" }
+      { label: "Execution Price", value: "$195.89" },
+      { label: "Gross Value", value: "$9,794,500" },
+      { label: "Commission", value: "$9,795" }
     ]
   },
   {
@@ -100,7 +100,7 @@ const orderSteps: OrderStep[] = [
       "New Trade: +50,000 shares",
       "Total Position: 250,000 shares",
       "Avg Cost Basis: $175.25",
-      "Market Value: $46,375,000"
+      "Market Value: $48,972,500"
     ],
     dataAccess: [
       "Updating FACT_POSITIONS table",
@@ -111,8 +111,8 @@ const orderSteps: OrderStep[] = [
     ],
     metrics: [
       { label: "Total Position", value: "250,000 shares" },
-      { label: "Market Value", value: "$46,375,000" },
-      { label: "Unrealized P&L", value: "+$2,562,500" }
+      { label: "Market Value", value: "$48,972,500" },
+      { label: "Unrealized P&L", value: "+$5,160,000" }
     ]
   },
   {
@@ -440,7 +440,7 @@ const OrderLifecycleAnimation: React.FC = () => {
                                 {metric.value}
                               </Text>
                             </Box>
-                            {index < orderSteps[currentStep].metrics!.length - 1 && (
+                            {orderSteps[currentStep].metrics && index < orderSteps[currentStep].metrics!.length - 1 && (
                               <Separator size="4" />
                             )}
                           </motion.div>

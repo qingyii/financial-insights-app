@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as d3 from 'd3';
 import { OrderFlow } from '@/models/types';
 import OrderLifecycleAnimation from './OrderLifecycleAnimation';
+import { EquityTransactionShowcase } from './EquityTransactionShowcase';
 
 interface AnimatedOrder {
   id: string;
@@ -182,10 +183,15 @@ const OrderFlowVisualization: React.FC = () => {
         <Tabs.List mb="4">
           <Tabs.Trigger value="lifecycle">Order Lifecycle Process</Tabs.Trigger>
           <Tabs.Trigger value="realtime">Real-time Order Flow</Tabs.Trigger>
+          <Tabs.Trigger value="showcase">Equity Transaction Demo</Tabs.Trigger>
         </Tabs.List>
         
         <Tabs.Content value="lifecycle">
           <OrderLifecycleAnimation />
+        </Tabs.Content>
+        
+        <Tabs.Content value="showcase">
+          <EquityTransactionShowcase />
         </Tabs.Content>
         
         <Tabs.Content value="realtime">
@@ -241,7 +247,7 @@ const OrderFlowVisualization: React.FC = () => {
                     cy={order.y}
                     r={Math.sqrt(order.data.quantity) / 10 + 8}
                     fill={`url(#gradient-${order.lifecycle})`}
-                    stroke={getOrderColor(order)}
+                    stroke={getOrderColor(order.data)}
                     strokeWidth="2"
                     animate={{
                       cx: order.x,
