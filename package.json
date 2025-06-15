@@ -21,6 +21,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@radix-ui/themes": "3.0.0",
     "@tanstack/react-query": "5.17.9",
+    "@xyflow/react": "^12.7.0",
     "axios": "1.6.5",
     "cors": "2.8.5",
     "d3": "7.8.5",

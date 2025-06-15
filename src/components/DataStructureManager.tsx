@@ -19,10 +19,12 @@ import {
   PlusIcon,
   TableIcon,
   Pencil1Icon,
-  InfoCircledIcon
+  InfoCircledIcon,
+  DrawingPinIcon
 } from '@radix-ui/react-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import ERDiagram from './ERDiagram';
 
 interface Column {
   name: string;
@@ -133,14 +135,37 @@ const DataStructureManager: React.FC = () => {
           </Button>
         </Flex>
 
-        <Tabs.Root defaultValue="dimensions">
+        <Tabs.Root defaultValue="er-diagram">
           <Tabs.List>
+            <Tabs.Trigger value="er-diagram">
+              <DrawingPinIcon />
+              ER Diagram
+            </Tabs.Trigger>
             <Tabs.Trigger value="dimensions">Dimensions ({dimensionTables.length})</Tabs.Trigger>
             <Tabs.Trigger value="facts">Facts ({factTables.length})</Tabs.Trigger>
             <Tabs.Trigger value="views">Views ({viewTables.length})</Tabs.Trigger>
           </Tabs.List>
 
           <Box mt="4">
+            <Tabs.Content value="er-diagram">
+              <Card>
+                <Flex justify="between" align="center" mb="4">
+                  <Box>
+                    <Heading size="4" mb="2">Entity Relationship Diagram</Heading>
+                    <Text color="gray" size="2">
+                      Interactive visual representation of the star schema with fact and dimension tables.
+                      Drag to pan, scroll to zoom, and hover over table nodes to see details.
+                    </Text>
+                  </Box>
+                  <Flex gap="2">
+                    <Badge color="ruby" variant="soft">FACT Tables</Badge>
+                    <Badge color="blue" variant="soft">DIM Tables</Badge>
+                  </Flex>
+                </Flex>
+                <ERDiagram />
+              </Card>
+            </Tabs.Content>
+            
             <Tabs.Content value="dimensions">
               {dimensionTables.map(tableName => (
                 <TableDisplay
