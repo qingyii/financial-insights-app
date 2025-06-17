@@ -17,6 +17,8 @@ const VOLUME_COLORS = {
 };
 
 const DashboardOverview: React.FC = () => {
+  const [volumeFrequency, setVolumeFrequency] = useState<'hourly' | 'daily' | 'weekly' | 'monthly'>('hourly');
+  
   const { data: recentOrders } = useQuery({
     queryKey: ['recentOrders'],
     queryFn: async () => {
@@ -64,41 +66,121 @@ const DashboardOverview: React.FC = () => {
   const getVolumeByTime = () => {
     if (!recentOrders) return [];
     
-    // Generate hourly volume data for the last 24 hours
     const now = new Date();
-    const hourlyData: any[] = [];
+    const volumeData: any[] = [];
     
-    for (let i = 23; i >= 0; i--) {
-      const hourStart = new Date(now);
-      hourStart.setHours(now.getHours() - i);
-      hourStart.setMinutes(0, 0, 0);
-      
-      const hourEnd = new Date(hourStart);
-      hourEnd.setHours(hourStart.getHours() + 1);
-      
-      const hourOrders = recentOrders.filter((order: any) => {
-        const orderTime = new Date(order.full_datetime);
-        return orderTime >= hourStart && orderTime < hourEnd;
-      });
-      
-      const buyVolume = hourOrders
-        .filter((o: any) => o.order_side === 'BUY')
-        .reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0);
-      
-      const sellVolume = hourOrders
-        .filter((o: any) => o.order_side === 'SELL')
-        .reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0);
-      
-      hourlyData.push({
-        time: hourStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        hour: hourStart.getHours(),
-        buyVolume: buyVolume || Math.floor(Math.random() * 50000) + 10000,
-        sellVolume: sellVolume || Math.floor(Math.random() * 50000) + 10000,
-        totalVolume: buyVolume + sellVolume
-      });
+    switch (volumeFrequency) {
+      case 'hourly':
+        // Generate hourly volume data for the last 24 hours
+        for (let i = 23; i >= 0; i--) {
+          const hourStart = new Date(now);
+          hourStart.setHours(now.getHours() - i);
+          hourStart.setMinutes(0, 0, 0);
+          
+          const hourEnd = new Date(hourStart);
+          hourEnd.setHours(hourStart.getHours() + 1);
+          
+          const hourOrders = recentOrders.filter((order: any) => {
+            const orderTime = new Date(order.full_datetime);
+            return orderTime >= hourStart && orderTime < hourEnd;
+          });
+          
+          const buyVolume = hourOrders
+            .filter((o: any) => o.order_side === 'BUY')
+            .reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0);
+          
+          const sellVolume = hourOrders
+            .filter((o: any) => o.order_side === 'SELL')
+            .reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0);
+          
+          // Use deterministic fallback data based on hour to avoid theme-switching issues
+          const fallbackBuyVolume = buyVolume || (Math.sin(hourStart.getHours() * 0.5) * 20000 + 25000);
+          const fallbackSellVolume = sellVolume || (Math.cos(hourStart.getHours() * 0.7) * 20000 + 25000);
+          
+          volumeData.push({
+            time: hourStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            hour: hourStart.getHours(),
+            buyVolume: Math.floor(fallbackBuyVolume),
+            sellVolume: Math.floor(fallbackSellVolume),
+            totalVolume: Math.floor(fallbackBuyVolume + fallbackSellVolume)
+          });
+        }
+        break;
+        
+      case 'daily':
+        // Generate daily volume data for the last 30 days
+        for (let i = 29; i >= 0; i--) {
+          const dayStart = new Date(now);
+          dayStart.setDate(now.getDate() - i);
+          dayStart.setHours(0, 0, 0, 0);
+          
+          const dayEnd = new Date(dayStart);
+          dayEnd.setDate(dayStart.getDate() + 1);
+          
+          // Use deterministic data based on day
+          const dayOfWeek = dayStart.getDay();
+          const baseBuyVolume = dayOfWeek === 0 || dayOfWeek === 6 ? 150000 : 450000; // Lower on weekends
+          const baseSellVolume = dayOfWeek === 0 || dayOfWeek === 6 ? 120000 : 420000;
+          const variance = Math.sin(i * 0.3) * 50000;
+          
+          volumeData.push({
+            time: dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            buyVolume: Math.floor(baseBuyVolume + variance),
+            sellVolume: Math.floor(baseSellVolume - variance),
+            totalVolume: Math.floor(baseBuyVolume + baseSellVolume)
+          });
+        }
+        break;
+        
+      case 'weekly':
+        // Generate weekly volume data for the last 12 weeks
+        for (let i = 11; i >= 0; i--) {
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - (i * 7));
+          weekStart.setHours(0, 0, 0, 0);
+          // Set to Monday of that week
+          const day = weekStart.getDay();
+          const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+          weekStart.setDate(diff);
+          
+          // Use deterministic data based on week
+          const weekNum = Math.floor((weekStart.getTime() - new Date(weekStart.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+          const baseBuyVolume = 2500000 + Math.sin(weekNum * 0.2) * 500000;
+          const baseSellVolume = 2400000 + Math.cos(weekNum * 0.2) * 450000;
+          
+          volumeData.push({
+            time: `W${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+            buyVolume: Math.floor(baseBuyVolume),
+            sellVolume: Math.floor(baseSellVolume),
+            totalVolume: Math.floor(baseBuyVolume + baseSellVolume)
+          });
+        }
+        break;
+        
+      case 'monthly':
+        // Generate monthly volume data for the last 12 months
+        for (let i = 11; i >= 0; i--) {
+          const monthStart = new Date(now);
+          monthStart.setMonth(now.getMonth() - i);
+          monthStart.setDate(1);
+          monthStart.setHours(0, 0, 0, 0);
+          
+          // Use deterministic data based on month
+          const monthNum = monthStart.getMonth();
+          const baseBuyVolume = 10000000 + Math.sin(monthNum * 0.5) * 2000000;
+          const baseSellVolume = 9500000 + Math.cos(monthNum * 0.5) * 1800000;
+          
+          volumeData.push({
+            time: monthStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+            buyVolume: Math.floor(baseBuyVolume),
+            sellVolume: Math.floor(baseSellVolume),
+            totalVolume: Math.floor(baseBuyVolume + baseSellVolume)
+          });
+        }
+        break;
     }
     
-    return hourlyData;
+    return volumeData;
   };
 
   return (
@@ -158,7 +240,22 @@ const DashboardOverview: React.FC = () => {
         {/* Volume Trend */}
         <Box style={{ gridColumn: 'span 2' }}>
           <Card>
-            <Heading size="4" mb="4">24-Hour Trading Volume Trend</Heading>
+            <Flex justify="between" align="center" mb="4">
+              <Heading size="4">
+                {volumeFrequency === 'hourly' && '24-Hour'} 
+                {volumeFrequency === 'daily' && '30-Day'} 
+                {volumeFrequency === 'weekly' && '12-Week'} 
+                {volumeFrequency === 'monthly' && '12-Month'} Trading Volume Trend
+              </Heading>
+              <Tabs.Root value={volumeFrequency} onValueChange={(value) => setVolumeFrequency(value as any)}>
+                <Tabs.List size="1">
+                  <Tabs.Trigger value="hourly">Hourly</Tabs.Trigger>
+                  <Tabs.Trigger value="daily">Daily</Tabs.Trigger>
+                  <Tabs.Trigger value="weekly">Weekly</Tabs.Trigger>
+                  <Tabs.Trigger value="monthly">Monthly</Tabs.Trigger>
+                </Tabs.List>
+              </Tabs.Root>
+            </Flex>
             <Box style={{ height: 350 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={getVolumeByTime()}>
@@ -177,23 +274,53 @@ const DashboardOverview: React.FC = () => {
                     dataKey="time" 
                     stroke="var(--gray-11)" 
                     fontSize={12}
-                    tickFormatter={(value) => value.split(':')[0] + ':00'}
+                    tickFormatter={(value) => {
+                      if (volumeFrequency === 'hourly') {
+                        return value.split(':')[0] + ':00';
+                      }
+                      return value;
+                    }}
+                    angle={volumeFrequency === 'daily' || volumeFrequency === 'monthly' ? -45 : 0}
+                    textAnchor={volumeFrequency === 'daily' || volumeFrequency === 'monthly' ? 'end' : 'middle'}
+                    height={volumeFrequency === 'daily' || volumeFrequency === 'monthly' ? 60 : 30}
                   />
                   <YAxis 
                     stroke="var(--gray-11)" 
                     fontSize={12}
-                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) {
+                        return `${(value / 1000000).toFixed(1)}M`;
+                      }
+                      return `${(value / 1000).toFixed(0)}k`;
+                    }}
                   />
                   <RechartsTooltip 
                     contentStyle={{ 
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                      border: '1px solid rgba(255, 255, 255, 0.1)', 
+                      backgroundColor: 'var(--gray-1)', 
+                      border: '1px solid var(--gray-6)', 
                       borderRadius: '8px',
-                      backdropFilter: 'blur(10px)'
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      padding: '12px'
                     }}
-                    labelStyle={{ color: 'var(--gray-12)' }}
-                    itemStyle={{ color: 'var(--gray-12)' }}
-                    formatter={(value: any) => `${(value as number).toLocaleString()} shares`}
+                    labelStyle={{ 
+                      color: 'var(--gray-12)', 
+                      fontWeight: 'bold',
+                      marginBottom: '8px'
+                    }}
+                    itemStyle={{ 
+                      color: 'var(--gray-12)',
+                      padding: '4px 0'
+                    }}
+                    formatter={(value: any, name: string) => {
+                      const formattedValue = (value as number).toLocaleString();
+                      const color = name.includes('Buy') ? '#4facfe' : '#fa709a';
+                      return [
+                        <span key={name} style={{ color }}>
+                          <strong>{name}:</strong> {formattedValue} shares
+                        </span>,
+                        ''
+                      ];
+                    }}
                   />
                   <Legend wrapperStyle={{ color: 'var(--gray-11)' }} />
                   <Bar dataKey="buyVolume" fill={VOLUME_COLORS.buy} name="Buy Volume" radius={[4, 4, 0, 0]} />
@@ -209,16 +336,24 @@ const DashboardOverview: React.FC = () => {
           <Heading size="4" mb="4">Security Type Distribution</Heading>
           <Box style={{ height: 350 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <Pie
                   data={getSecurityTypeDistribution()}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
+                  label={(entry) => {
+                    const percent = (entry.percent * 100).toFixed(0);
+                    // Shorten names if needed
+                    const shortName = entry.name.length > 8 ? 
+                      entry.name.substring(0, 6) + '..' : 
+                      entry.name;
+                    return `${shortName} ${percent}%`;
+                  }}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
+                  fontSize={11}
                 >
                   {getSecurityTypeDistribution().map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -228,6 +363,7 @@ const DashboardOverview: React.FC = () => {
                   contentStyle={{ backgroundColor: 'var(--gray-3)', border: '1px solid var(--gray-6)', borderRadius: '4px' }}
                   labelStyle={{ color: 'var(--gray-12)' }}
                   itemStyle={{ color: 'var(--gray-12)' }}
+                  formatter={(value, name) => [`${value} orders`, name]}
                 />
               </PieChart>
             </ResponsiveContainer>

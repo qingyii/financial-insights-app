@@ -33,6 +33,52 @@ const COLORS = ['#E73C7E', '#23A6D5', '#23D5AB', '#FFA726', '#AB47BC', '#66BB6A'
 
 export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, queryType }) => {
   const [chartType, setChartType] = React.useState('auto');
+  
+  // Calculate responsive font sizes based on container width
+  const [fontSize, setFontSize] = React.useState({
+    axis: 12,
+    label: 14,
+    legend: 12,
+    tooltip: 13
+  });
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const updateFontSizes = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        const vw = window.innerWidth;
+        
+        // Combine container width and viewport width for better scaling
+        const containerScale = Math.min(Math.max(width / 800, 0.6), 1.4);
+        const viewportScale = Math.min(Math.max(vw / 1200, 0.7), 1.2);
+        const finalScale = (containerScale + viewportScale) / 2;
+        
+        setFontSize({
+          axis: Math.max(8, Math.round(11 * finalScale)),
+          label: Math.max(10, Math.round(13 * finalScale)),
+          legend: Math.max(9, Math.round(11 * finalScale)),
+          tooltip: Math.max(10, Math.round(12 * finalScale))
+        });
+      }
+    };
+
+    // Initial update with a small delay to ensure container is rendered
+    const timeoutId = setTimeout(updateFontSizes, 100);
+    
+    window.addEventListener('resize', updateFontSizes);
+    const observer = new ResizeObserver(updateFontSizes);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', updateFontSizes);
+      observer.disconnect();
+    };
+  }, []);
 
   const { recommendedChart, processedData, chartConfig } = useMemo(() => {
     if (!data || data.length === 0) return { recommendedChart: null, processedData: [], chartConfig: {} };
@@ -43,11 +89,22 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
     );
     const categoricalColumns = columns.filter(col => !numericColumns.includes(col));
 
-    // Determine recommended chart type based on data structure
+    // Determine recommended chart type based on data structure and query context
     let recommended = 'bar';
     let config: any = {};
 
-    if (numericColumns.length >= 2 && categoricalColumns.length === 0) {
+    // Check for specific patterns in column names or query
+    const hasSecurityType = columns.some(col => col.toLowerCase().includes('security_type') || col.toLowerCase().includes('type'));
+    const hasDistribution = columns.some(col => col.toLowerCase().includes('count') || col.toLowerCase().includes('total') || col.toLowerCase().includes('sum'));
+    
+    if ((hasSecurityType && hasDistribution) || (numericColumns.length === 1 && categoricalColumns.length === 1 && data.length <= 12)) {
+      // For security type distribution, use donut chart (pie with inner radius)
+      recommended = 'donut';
+      config = {
+        dataKey: numericColumns[0],
+        nameKey: categoricalColumns[0]
+      };
+    } else if (numericColumns.length >= 2 && categoricalColumns.length === 0) {
       recommended = 'scatter';
       config = {
         xKey: numericColumns[0],
@@ -105,17 +162,21 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
               <XAxis 
                 dataKey={chartConfig.xKey || Object.keys(processedData[0])[0]} 
                 stroke="var(--gray-11)"
-                style={{ fontSize: 12 }}
+                tick={{ fontSize: fontSize.axis }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
-              <YAxis stroke="var(--gray-11)" style={{ fontSize: 12 }} />
+              <YAxis stroke="var(--gray-11)" tick={{ fontSize: fontSize.axis }} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'var(--gray-2)', 
                   border: '1px solid var(--gray-6)',
-                  borderRadius: 'var(--radius-2)' 
+                  borderRadius: 'var(--radius-2)',
+                  fontSize: fontSize.tooltip
                 }}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: fontSize.legend }} iconSize={fontSize.legend} />
               {chartConfig.yKey ? (
                 <Bar dataKey={chartConfig.yKey} fill={COLORS[0]} />
               ) : (
@@ -137,17 +198,21 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
               <XAxis 
                 dataKey={chartConfig.xKey || Object.keys(processedData[0])[0]} 
                 stroke="var(--gray-11)"
-                style={{ fontSize: 12 }}
+                tick={{ fontSize: fontSize.axis }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
-              <YAxis stroke="var(--gray-11)" style={{ fontSize: 12 }} />
+              <YAxis stroke="var(--gray-11)" tick={{ fontSize: fontSize.axis }} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'var(--gray-2)', 
                   border: '1px solid var(--gray-6)',
-                  borderRadius: 'var(--radius-2)' 
+                  borderRadius: 'var(--radius-2)',
+                  fontSize: fontSize.tooltip
                 }}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: fontSize.legend }} iconSize={fontSize.legend} />
               {chartConfig.lines ? (
                 chartConfig.lines.map((line: string, index: number) => (
                   <Line 
@@ -178,18 +243,28 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
         );
 
       case 'pie':
-        const pieData = processedData.slice(0, 8); // Limit to 8 slices for readability
+        const pieData = processedData.slice(0, 6); // Limit to 6 slices for better label visibility
+        const pieTotal = pieData.reduce((sum, entry) => sum + (entry[chartConfig.dataKey] || 0), 0);
         return (
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={500}>
+            <PieChart margin={{ top: 40, right: 80, bottom: 80, left: 80 }}>
               <Pie
                 data={pieData}
                 dataKey={chartConfig.dataKey || Object.keys(pieData[0]).find(k => typeof pieData[0][k] === 'number')}
                 nameKey={chartConfig.nameKey || Object.keys(pieData[0])[0]}
                 cx="50%"
-                cy="50%"
-                outerRadius={120}
-                label={(entry) => `${entry[chartConfig.nameKey || Object.keys(pieData[0])[0]]}: ${entry.value}`}
+                cy="45%"
+                outerRadius={130}
+                label={(entry) => {
+                  const percent = ((entry.value / pieTotal) * 100).toFixed(1);
+                  return `${percent}%`;
+                }}
+                labelStyle={{ 
+                  fontSize: Math.max(fontSize.label, 12), 
+                  fontWeight: 600,
+                  fill: 'var(--gray-12)'
+                }}
+                labelLine={false}
               >
                 {pieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -199,7 +274,72 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
                 contentStyle={{ 
                   backgroundColor: 'var(--gray-2)', 
                   border: '1px solid var(--gray-6)',
-                  borderRadius: 'var(--radius-2)' 
+                  borderRadius: 'var(--radius-2)',
+                  fontSize: fontSize.tooltip,
+                  padding: '12px'
+                }}
+                formatter={(value: any, name: any) => [`${value} (${((value / pieTotal) * 100).toFixed(1)}%)`, name]}
+              />
+              <Legend 
+                verticalAlign="bottom" 
+                height={60}
+                iconSize={Math.max(fontSize.legend, 8)}
+                wrapperStyle={{ 
+                  fontSize: Math.max(fontSize.legend, 11),
+                  paddingTop: '20px'
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+
+      case 'donut':
+        const donutData = processedData.slice(0, 8); // Limit to 8 items for better label visibility
+        const total = donutData.reduce((sum, entry) => sum + (entry[chartConfig.dataKey] || 0), 0);
+        return (
+          <ResponsiveContainer width="100%" height={500}>
+            <PieChart margin={{ top: 40, right: 80, bottom: 80, left: 80 }}>
+              <Pie
+                data={donutData}
+                dataKey={chartConfig.dataKey || Object.keys(donutData[0]).find(k => typeof donutData[0][k] === 'number')}
+                nameKey={chartConfig.nameKey || Object.keys(donutData[0])[0]}
+                cx="50%"
+                cy="45%"
+                innerRadius={60}
+                outerRadius={120}
+                paddingAngle={3}
+                label={(entry) => {
+                  const percent = ((entry.value / total) * 100).toFixed(1);
+                  return `${percent}%`;
+                }}
+                labelStyle={{ 
+                  fontSize: Math.max(fontSize.label, 12), 
+                  fontWeight: 600,
+                  fill: 'var(--gray-12)'
+                }}
+                labelLine={false}
+              >
+                {donutData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'var(--gray-2)', 
+                  border: '1px solid var(--gray-6)',
+                  borderRadius: 'var(--radius-2)',
+                  fontSize: fontSize.tooltip,
+                  padding: '12px'
+                }}
+                formatter={(value: any, name: any) => [`${value} (${((value / total) * 100).toFixed(1)}%)`, name]}
+              />
+              <Legend 
+                verticalAlign="bottom" 
+                height={60}
+                iconSize={Math.max(fontSize.legend, 8)}
+                wrapperStyle={{ 
+                  fontSize: Math.max(fontSize.legend, 11),
+                  paddingTop: '20px'
                 }}
               />
             </PieChart>
@@ -214,17 +354,21 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
               <XAxis 
                 dataKey={chartConfig.xKey || Object.keys(processedData[0])[0]} 
                 stroke="var(--gray-11)"
-                style={{ fontSize: 12 }}
+                tick={{ fontSize: fontSize.axis }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
-              <YAxis stroke="var(--gray-11)" style={{ fontSize: 12 }} />
+              <YAxis stroke="var(--gray-11)" tick={{ fontSize: fontSize.axis }} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'var(--gray-2)', 
                   border: '1px solid var(--gray-6)',
-                  borderRadius: 'var(--radius-2)' 
+                  borderRadius: 'var(--radius-2)',
+                  fontSize: fontSize.tooltip
                 }}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: fontSize.legend }} iconSize={fontSize.legend} />
               {Object.keys(processedData[0])
                 .filter(key => typeof processedData[0][key] === 'number')
                 .map((key, index) => (
@@ -257,7 +401,8 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
                 contentStyle={{ 
                   backgroundColor: 'var(--gray-2)', 
                   border: '1px solid var(--gray-6)',
-                  borderRadius: 'var(--radius-2)' 
+                  borderRadius: 'var(--radius-2)',
+                  fontSize: fontSize.tooltip
                 }}
               />
             </Treemap>
@@ -274,7 +419,7 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
   }
 
   return (
-    <Card>
+    <Card ref={containerRef}>
       <Flex justify="between" align="center" mb="3">
         <Heading size="4">Data Visualization</Heading>
         <Flex gap="2" align="center">
@@ -288,6 +433,7 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
               <Select.Item value="bar">Bar Chart</Select.Item>
               <Select.Item value="line">Line Chart</Select.Item>
               <Select.Item value="pie">Pie Chart</Select.Item>
+              <Select.Item value="donut">Donut Chart</Select.Item>
               <Select.Item value="area">Area Chart</Select.Item>
               <Select.Item value="treemap">Treemap</Select.Item>
             </Select.Content>

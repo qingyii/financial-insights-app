@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
 import { mockDataGenerator } from './mockDataGenerator';
+import { createViewsSQL } from './createViews';
 import type { 
   DimSecurity, 
   DimTrader, 
@@ -62,6 +63,19 @@ export class DatabaseService {
         await this.generateHistoricalData();
       } else {
         console.log('Database already exists, skipping initialization');
+      }
+      
+      // Create or update views (always run this to ensure views exist)
+      console.log('Creating/updating database views...');
+      const viewStatements = createViewsSQL.split(';').filter(stmt => stmt.trim());
+      for (const stmt of viewStatements) {
+        if (stmt.trim()) {
+          try {
+            await this.run(stmt);
+          } catch (error) {
+            console.error('Error creating view:', error);
+          }
+        }
       }
       
       // Re-enable foreign keys

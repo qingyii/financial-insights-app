@@ -25,7 +25,7 @@ interface TableField {
   references?: string;
 }
 
-interface TableNodeData {
+interface TableNodeData extends Record<string, any> {
   name: string;
   type: 'fact' | 'dimension';
   fields: TableField[];

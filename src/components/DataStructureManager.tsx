@@ -24,7 +24,7 @@ import {
 } from '@radix-ui/react-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import ERDiagram from './ERDiagram';
+import ERDiagramWithRelationships from './ERDiagramWithRelationships';
 
 interface Column {
   name: string;
@@ -162,7 +162,7 @@ const DataStructureManager: React.FC = () => {
                     <Badge color="blue" variant="soft">DIM Tables</Badge>
                   </Flex>
                 </Flex>
-                <ERDiagram />
+                <ERDiagramWithRelationships />
               </Card>
             </Tabs.Content>
             

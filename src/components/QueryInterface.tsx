@@ -23,7 +23,9 @@ import {
   InfoCircledIcon,
   ClockIcon,
   BarChartIcon,
-  Share2Icon
+  Share2Icon,
+  MagnifyingGlassIcon,
+  UpdateIcon
 } from '@radix-ui/react-icons';
 import * as Accordion from '@radix-ui/react-accordion';
 import { useMutation } from '@tanstack/react-query';
@@ -31,25 +33,49 @@ import axios from 'axios';
 import { QueryRequest, QueryResponse } from '@/models/types';
 import { DatabaseGraphVisualization } from './DatabaseGraphVisualization';
 import { QueryResultCharts } from './QueryResultCharts';
+import { Neo4jSchemaGraphWrapper } from './Neo4jSchemaGraphWrapper';
+import { TableRelevanceVisualization } from './TableRelevanceVisualization';
+
+interface ConversationItem {
+  id: string;
+  query: string;
+  response: QueryResponse | null;
+  timestamp: Date;
+  type: 'user' | 'followup';
+  isLoading?: boolean;
+}
 
 const QueryInterface: React.FC = () => {
   const [query, setQuery] = useState('');
-  const [queryHistory, setQueryHistory] = useState<Array<{ query: string; timestamp: Date; type: 'user' | 'followup' }>>([]);
-  const [currentResponse, setCurrentResponse] = useState<QueryResponse | null>(null);
+  const [conversation, setConversation] = useState<ConversationItem[]>([]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const queryMutation = useMutation({
-    mutationFn: async (request: QueryRequest) => {
-      const response = await axios.post('http://localhost:3000/api/query', request);
-      return response.data;
+    mutationFn: async (request: QueryRequest & { conversationId?: string }) => {
+      const { conversationId, ...queryRequest } = request;
+      const response = await axios.post('http://localhost:3000/api/query', queryRequest);
+      return { ...response.data, conversationId };
     },
     onSuccess: (data) => {
-      setCurrentResponse(data);
-      setQueryHistory(prev => [...prev, { query, timestamp: new Date(), type: 'user' }]);
-      if (!data.clarificationNeeded) {
-        setQuery('');
-      }
+      // Update the conversation item with the response
+      setConversation(prev => 
+        prev.map(item => 
+          item.id === data.conversationId 
+            ? { ...item, response: data, isLoading: false }
+            : item
+        )
+      );
+    },
+    onError: (error, variables) => {
+      // Mark the conversation item as failed
+      setConversation(prev => 
+        prev.map(item => 
+          item.id === variables.conversationId 
+            ? { ...item, response: null, isLoading: false }
+            : item
+        )
+      );
     }
   });
 
@@ -79,13 +105,51 @@ const QueryInterface: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      queryMutation.mutate({ query, followUp: queryHistory.length > 0 });
+      const conversationId = `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Add the question to conversation immediately
+      const newItem: ConversationItem = {
+        id: conversationId,
+        query: query.trim(),
+        response: null,
+        timestamp: new Date(),
+        type: 'user',
+        isLoading: true
+      };
+      
+      setConversation(prev => [...prev, newItem]);
+      setQuery(''); // Clear the input immediately
+      
+      // Submit the query
+      queryMutation.mutate({ 
+        query: query.trim(), 
+        followUp: conversation.length > 0,
+        conversationId 
+      });
     }
   };
 
   const handleFollowUpQuestion = (question: string) => {
-    setQuery(question);
-    setQueryHistory(prev => [...prev, { query: question, timestamp: new Date(), type: 'followup' }]);
+    const conversationId = `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Add the follow-up question to conversation immediately
+    const newItem: ConversationItem = {
+      id: conversationId,
+      query: question,
+      response: null,
+      timestamp: new Date(),
+      type: 'followup',
+      isLoading: true
+    };
+    
+    setConversation(prev => [...prev, newItem]);
+    
+    // Submit the follow-up query
+    queryMutation.mutate({ 
+      query: question, 
+      followUp: true,
+      conversationId 
+    });
   };
 
   const handleClarification = (suggestion: string) => {
@@ -127,6 +191,181 @@ const QueryInterface: React.FC = () => {
     );
   };
 
+  // Component to render individual conversation responses
+  const ConversationResponse: React.FC<{ response: QueryResponse; onFollowUp: (question: string) => void }> = ({ response, onFollowUp }) => {
+    if (response.clarificationNeeded) {
+      return (
+        <Box p="3" style={{
+          backgroundColor: 'var(--amber-2)',
+          border: '1px solid var(--amber-6)',
+          borderRadius: 'var(--radius-2)'
+        }}>
+          <Flex align="center" gap="2" mb="2">
+            <QuestionMarkCircledIcon color="var(--amber-9)" />
+            <Text weight="bold" color="amber">Need clarification</Text>
+          </Flex>
+          <Text mb="3">{response.clarificationNeeded.ambiguity}</Text>
+          <Flex gap="2" wrap="wrap">
+            {response.clarificationNeeded.suggestions.map((suggestion) => (
+              <Badge
+                key={suggestion}
+                variant="soft"
+                color="amber"
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleClarification(suggestion)}
+              >
+                {suggestion}
+              </Badge>
+            ))}
+          </Flex>
+        </Box>
+      );
+    }
+
+    return (
+      <Box style={{
+        backgroundColor: 'var(--gray-2)',
+        border: '1px solid var(--gray-6)',
+        borderRadius: 'var(--radius-2)'
+      }}>
+        <Accordion.Root type="multiple" defaultValue={['sql', 'results']}>
+          {/* SQL Query */}
+          <Accordion.Item value="sql">
+            <Accordion.Header>
+              <Accordion.Trigger style={{ 
+                width: '100%', 
+                padding: 'var(--space-3)', 
+                backgroundColor: 'var(--gray-3)',
+                border: 'none',
+                borderRadius: 'var(--radius-2)',
+                cursor: 'pointer',
+                marginBottom: 'var(--space-2)'
+              }}>
+                <Flex align="center" gap="2">
+                  <CodeIcon />
+                  <Text>Generated SQL</Text>
+                </Flex>
+              </Accordion.Trigger>
+            </Accordion.Header>
+            <Accordion.Content>
+              <Box p="3" style={{ 
+                backgroundColor: 'var(--gray-4)', 
+                borderRadius: 'var(--radius-2)',
+                fontFamily: 'monospace'
+              }}>
+                <pre style={{ margin: 0, color: 'var(--green-11)', fontSize: '12px' }}>
+                  {response.sql}
+                </pre>
+              </Box>
+              {response.explanation && (
+                <Box mt="2" p="2" style={{ 
+                  backgroundColor: 'var(--blue-2)', 
+                  borderRadius: 'var(--radius-2)',
+                  border: '1px solid var(--blue-6)'
+                }}>
+                  <Text size="2" color="blue">{response.explanation}</Text>
+                </Box>
+              )}
+            </Accordion.Content>
+          </Accordion.Item>
+
+          {/* Results */}
+          <Accordion.Item value="results">
+            <Accordion.Header>
+              <Accordion.Trigger style={{ 
+                width: '100%', 
+                padding: 'var(--space-3)', 
+                backgroundColor: 'var(--gray-3)',
+                border: 'none',
+                borderRadius: 'var(--radius-2)',
+                cursor: 'pointer',
+                marginBottom: 'var(--space-2)'
+              }}>
+                <Text>Results ({response.results.length} rows)</Text>
+              </Accordion.Trigger>
+            </Accordion.Header>
+            <Accordion.Content>
+              <Box p="3">
+                {renderTableData(response.results)}
+              </Box>
+            </Accordion.Content>
+          </Accordion.Item>
+
+          {/* Insights */}
+          {response.insights && response.insights.length > 0 && (
+            <Accordion.Item value="insights">
+              <Accordion.Header>
+                <Accordion.Trigger style={{ 
+                  width: '100%', 
+                  padding: 'var(--space-3)', 
+                  backgroundColor: 'var(--gray-3)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-2)',
+                  cursor: 'pointer',
+                  marginBottom: 'var(--space-2)'
+                }}>
+                  <Flex align="center" gap="2">
+                    <MagicWandIcon />
+                    <Text>Insights & Analysis</Text>
+                  </Flex>
+                </Accordion.Trigger>
+              </Accordion.Header>
+              <Accordion.Content>
+                <Box p="3">
+                  {response.insights.map((insight, idx) => (
+                    <Box key={idx} mb={idx < response.insights.length - 1 ? "2" : "0"}>
+                      <Text size="2">{insight}</Text>
+                      {idx < response.insights.length - 1 && <Separator size="2" my="2" />}
+                    </Box>
+                  ))}
+                  
+                  {/* Add charts for visual insights */}
+                  {response.results && response.results.length > 0 && (
+                    <Box mt="3">
+                      <QueryResultCharts data={response.results} queryType="" />
+                    </Box>
+                  )}
+                </Box>
+              </Accordion.Content>
+            </Accordion.Item>
+          )}
+        </Accordion.Root>
+
+        {/* Follow-up Questions */}
+        {response.followUpQuestions && response.followUpQuestions.length > 0 && (
+          <Box p="3" style={{ borderTop: '1px solid var(--gray-6)' }}>
+            <Text size="2" weight="medium" mb="2" color="violet">
+              💡 Related questions you might ask:
+            </Text>
+            <Flex gap="2" wrap="wrap">
+              {response.followUpQuestions.map((question, idx) => (
+                <Badge
+                  key={idx}
+                  variant="soft"
+                  color="violet"
+                  style={{ 
+                    cursor: 'pointer',
+                    padding: '6px 12px',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => onFollowUp(question)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--violet-4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--violet-3)';
+                  }}
+                >
+                  {question}
+                </Badge>
+              ))}
+            </Flex>
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Box>
       <Tabs.Root defaultValue="query">
@@ -136,11 +375,24 @@ const QueryInterface: React.FC = () => {
             <Share2Icon width="16" height="16" style={{ marginRight: '4px' }} />
             Database Schema
           </Tabs.Trigger>
+          <Tabs.Trigger value="neo4j">
+            <Share2Icon width="16" height="16" style={{ marginRight: '4px' }} />
+            Graph Schema (Neo4j)
+          </Tabs.Trigger>
+          <Tabs.Trigger value="relevance">
+            <MagnifyingGlassIcon width="16" height="16" style={{ marginRight: '4px' }} />
+            Table Relevance
+          </Tabs.Trigger>
         </Tabs.List>
         
         <Tabs.Content value="query">
       <Card>
-        <Heading size="5" mb="4">Natural Language Query Interface</Heading>
+        <Box mb="4" style={{ textAlign: 'center' }}>
+          <Heading size="5" mb="2">Natural Language Query Interface</Heading>
+          <Text size="3" color="gray" style={{ lineHeight: 1.5 }}>
+            Ask questions about your trading data in plain English. For example: "Show me top traders by PnL today"
+          </Text>
+        </Box>
         
         <form onSubmit={handleSubmit}>
           <Flex gap="3" mb="4">
@@ -199,7 +451,99 @@ const QueryInterface: React.FC = () => {
           </Flex>
         </Box>
 
-        {/* Error display */}
+        {/* Conversation Display */}
+        {conversation.length > 0 && (
+          <Card mb="4">
+            <Heading size="4" mb="3">Conversation History</Heading>
+            <ScrollArea style={{ maxHeight: '800px' }}>
+              {conversation.map((item, index) => (
+                <Box key={item.id} mb="4">
+                  {/* User Question */}
+                  <Flex align="start" gap="3" mb="3">
+                    <Box style={{ 
+                      minWidth: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: item.type === 'followup' ? 'var(--violet-9)' : 'var(--blue-9)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}>
+                      {item.type === 'followup' ? 'F' : 'Q'}
+                    </Box>
+                    <Box style={{ flex: 1 }}>
+                      <Flex align="center" gap="2" mb="1">
+                        <Text size="2" weight="bold">
+                          {item.type === 'followup' ? 'Follow-up Question' : 'Your Question'}
+                        </Text>
+                        <Badge size="1" color={item.type === 'followup' ? 'violet' : 'blue'}>
+                          #{index + 1}
+                        </Badge>
+                        <Text size="1" color="gray">
+                          {item.timestamp.toLocaleTimeString()}
+                        </Text>
+                      </Flex>
+                      <Box p="3" style={{
+                        backgroundColor: item.type === 'followup' ? 'var(--violet-2)' : 'var(--blue-2)',
+                        border: `1px solid ${item.type === 'followup' ? 'var(--violet-6)' : 'var(--blue-6)'}`,
+                        borderRadius: 'var(--radius-2)'
+                      }}>
+                        <Text size="3">{item.query}</Text>
+                      </Box>
+                    </Box>
+                  </Flex>
+
+                  {/* AI Response */}
+                  <Flex align="start" gap="3" ml="4">
+                    <Box style={{ 
+                      minWidth: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--green-9)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}>
+                      AI
+                    </Box>
+                    <Box style={{ flex: 1 }}>
+                      {item.isLoading ? (
+                        <Box p="3" style={{
+                          backgroundColor: 'var(--gray-2)',
+                          border: '1px solid var(--gray-6)',
+                          borderRadius: 'var(--radius-2)'
+                        }}>
+                          <Flex align="center" gap="2">
+                            <UpdateIcon className="animate-spin" />
+                            <Text>Analyzing your query...</Text>
+                          </Flex>
+                        </Box>
+                      ) : item.response ? (
+                        <ConversationResponse response={item.response} onFollowUp={handleFollowUpQuestion} />
+                      ) : (
+                        <Box p="3" style={{
+                          backgroundColor: 'var(--red-2)',
+                          border: '1px solid var(--red-6)',
+                          borderRadius: 'var(--radius-2)'
+                        }}>
+                          <Text color="red">Sorry, there was an error processing your query.</Text>
+                        </Box>
+                      )}
+                    </Box>
+                  </Flex>
+                </Box>
+              ))}
+            </ScrollArea>
+          </Card>
+        )}
+
+        {/* Error display for current query */}
         {queryMutation.isError && (
           <Callout.Root color="red" mb="4">
             <Callout.Icon>
@@ -211,217 +555,8 @@ const QueryInterface: React.FC = () => {
           </Callout.Root>
         )}
 
-        {/* Clarification needed */}
-        {currentResponse?.clarificationNeeded && (
-          <Callout.Root color="amber" mb="4">
-            <Callout.Icon>
-              <QuestionMarkCircledIcon />
-            </Callout.Icon>
-            <Callout.Text>
-              <Text weight="bold" mb="2">{currentResponse.clarificationNeeded.ambiguity}</Text>
-              <Flex gap="2" wrap="wrap" mt="2">
-                {currentResponse.clarificationNeeded.suggestions.map((suggestion) => (
-                  <Badge
-                    key={suggestion}
-                    variant="soft"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleClarification(suggestion)}
-                  >
-                    {suggestion}
-                  </Badge>
-                ))}
-              </Flex>
-            </Callout.Text>
-          </Callout.Root>
-        )}
-
-        {/* Results display */}
-        {currentResponse && !currentResponse.clarificationNeeded && (
-          <Box>
-            <Accordion.Root type="multiple" defaultValue={['sql', 'results', 'insights']}>
-              {/* SQL Query */}
-              <Accordion.Item value="sql">
-                <Accordion.Header>
-                  <Accordion.Trigger style={{ 
-                    width: '100%', 
-                    padding: 'var(--space-3)', 
-                    backgroundColor: 'var(--gray-2)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-2)',
-                    cursor: 'pointer',
-                    marginBottom: 'var(--space-2)'
-                  }}>
-                    <Flex align="center" gap="2">
-                      <CodeIcon />
-                      <Text>Generated SQL Query</Text>
-                    </Flex>
-                  </Accordion.Trigger>
-                </Accordion.Header>
-                <Accordion.Content>
-                  <Card style={{ backgroundColor: 'var(--gray-3)' }}>
-                    <Box style={{ 
-                      backgroundColor: 'var(--gray-4)', 
-                      padding: 'var(--space-3)',
-                      borderRadius: 'var(--radius-2)',
-                      border: '1px solid var(--gray-6)'
-                    }}>
-                      <Code size="2">
-                        <pre style={{ margin: 0, color: 'var(--ruby-11)' }}>{currentResponse.sql}</pre>
-                      </Code>
-                    </Box>
-                    {currentResponse.explanation && (
-                      <Box mt="3" p="3" style={{ 
-                        backgroundColor: 'var(--blue-2)', 
-                        borderRadius: 'var(--radius-2)',
-                        border: '1px solid var(--blue-6)'
-                      }}>
-                        <Text size="2" color="blue">
-                          {currentResponse.explanation}
-                        </Text>
-                      </Box>
-                    )}
-                  </Card>
-                </Accordion.Content>
-              </Accordion.Item>
-
-              {/* Query Results */}
-              <Accordion.Item value="results">
-                <Accordion.Header>
-                  <Accordion.Trigger style={{ 
-                    width: '100%', 
-                    padding: 'var(--space-3)', 
-                    backgroundColor: 'var(--gray-2)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-2)',
-                    cursor: 'pointer',
-                    marginBottom: 'var(--space-2)'
-                  }}>
-                    <Text>Query Results ({currentResponse.results.length} rows)</Text>
-                  </Accordion.Trigger>
-                </Accordion.Header>
-                <Accordion.Content>
-                  <Card>
-                    {renderTableData(currentResponse.results)}
-                  </Card>
-                </Accordion.Content>
-              </Accordion.Item>
-
-              {/* Insights with Charts */}
-              {currentResponse.insights && currentResponse.insights.length > 0 && (
-                <Accordion.Item value="insights">
-                  <Accordion.Header>
-                    <Accordion.Trigger style={{ 
-                      width: '100%', 
-                      padding: 'var(--space-3)', 
-                      backgroundColor: 'var(--gray-2)',
-                      border: 'none',
-                      borderRadius: 'var(--radius-2)',
-                      cursor: 'pointer',
-                      marginBottom: 'var(--space-2)'
-                    }}>
-                      <Flex align="center" gap="2">
-                        <MagicWandIcon />
-                        <Text>Insights & Analysis</Text>
-                      </Flex>
-                    </Accordion.Trigger>
-                  </Accordion.Header>
-                  <Accordion.Content>
-                    <Card>
-                      {currentResponse.insights.map((insight, idx) => (
-                        <Box key={idx} mb={idx < currentResponse.insights.length - 1 ? "3" : "0"}>
-                          <Text size="2">{insight}</Text>
-                          {idx < currentResponse.insights.length - 1 && <Separator size="4" />}
-                        </Box>
-                      ))}
-                    </Card>
-                    
-                    {/* Add charts for visual insights */}
-                    {currentResponse.results && currentResponse.results.length > 0 && (
-                      <Box mt="4">
-                        <QueryResultCharts data={currentResponse.results} queryType={query} />
-                      </Box>
-                    )}
-                  </Accordion.Content>
-                </Accordion.Item>
-              )}
-
-              {/* Follow-up Questions */}
-              {currentResponse.followUpQuestions && currentResponse.followUpQuestions.length > 0 && (
-                <Accordion.Item value="followup">
-                  <Accordion.Header>
-                    <Accordion.Trigger style={{ 
-                      width: '100%', 
-                      padding: 'var(--space-3)', 
-                      backgroundColor: 'var(--gray-2)',
-                      border: 'none',
-                      borderRadius: 'var(--radius-2)',
-                      cursor: 'pointer'
-                    }}>
-                      <Flex align="center" gap="2">
-                        <QuestionMarkCircledIcon />
-                        <Text>Suggested Follow-up Questions</Text>
-                      </Flex>
-                    </Accordion.Trigger>
-                  </Accordion.Header>
-                  <Accordion.Content>
-                    <Card>
-                      {currentResponse.followUpQuestions.map((question, idx) => (
-                        <Box
-                          key={idx}
-                          p="3"
-                          mb="2"
-                          style={{ 
-                            backgroundColor: 'var(--green-2)', 
-                            border: '1px solid var(--green-6)',
-                            borderRadius: 'var(--radius-2)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          onClick={() => handleFollowUpQuestion(question)}
-                        >
-                          <Flex align="center" gap="2">
-                            <QuestionMarkCircledIcon color="var(--green-9)" />
-                            <Text size="2" color="green" weight="medium">{question}</Text>
-                          </Flex>
-                        </Box>
-                      ))}
-                    </Card>
-                  </Accordion.Content>
-                </Accordion.Item>
-              )}
-            </Accordion.Root>
-          </Box>
-        )}
       </Card>
 
-      {/* Query History */}
-      {queryHistory.length > 0 && (
-        <Card mt="4">
-          <Heading size="4" mb="3">Query History</Heading>
-          {queryHistory.slice(-5).reverse().map((item, idx) => (
-            <Box
-              key={idx}
-              p="3"
-              mb="2"
-              style={{ 
-                backgroundColor: item.type === 'followup' ? 'var(--green-2)' : 'var(--blue-2)', 
-                border: `1px solid ${item.type === 'followup' ? 'var(--green-6)' : 'var(--blue-6)'}`,
-                borderRadius: 'var(--radius-2)',
-                cursor: 'pointer'
-              }}
-              onClick={() => setQuery(item.query)}
-            >
-              <Flex justify="between" align="center">
-                <Text size="2" weight="medium">{item.query}</Text>
-                <Badge color={item.type === 'followup' ? 'green' : 'blue'} size="1">
-                  {item.type === 'followup' ? 'Follow-up' : 'User Query'}
-                </Badge>
-              </Flex>
-              <Text size="1" color="gray">{item.timestamp.toLocaleTimeString()}</Text>
-            </Box>
-          ))}
-        </Card>
-      )}
         </Tabs.Content>
         
         <Tabs.Content value="schema">
@@ -437,6 +572,25 @@ const QueryInterface: React.FC = () => {
             </Text>
             <DatabaseGraphVisualization />
           </Card>
+        </Tabs.Content>
+        
+        <Tabs.Content value="neo4j">
+          <Card>
+            <Heading size="5" mb="4">
+              <Flex align="center" gap="2">
+                <Share2Icon />
+                Graph-Based Schema Navigation (Neo4j)
+              </Flex>
+            </Heading>
+            <Text size="2" color="gray" mb="4">
+              Advanced schema exploration with automatic join path detection and SQL generation
+            </Text>
+            <Neo4jSchemaGraphWrapper />
+          </Card>
+        </Tabs.Content>
+        
+        <Tabs.Content value="relevance">
+          <TableRelevanceVisualization />
         </Tabs.Content>
       </Tabs.Root>
     </Box>
