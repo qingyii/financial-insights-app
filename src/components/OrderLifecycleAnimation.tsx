@@ -427,7 +427,7 @@ const OrderLifecycleAnimation: React.FC = () => {
                       <Heading size="4" mb="3">Real-time Values</Heading>
                       
                       <Box>
-                        {orderSteps[currentStep].metrics?.map((metric, index) => (
+                        {orderSteps[currentStep].metrics?.map((metric, index, metricsArray) => (
                           <motion.div
                             key={index}
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -440,7 +440,7 @@ const OrderLifecycleAnimation: React.FC = () => {
                                 {metric.value}
                               </Text>
                             </Box>
-                            {orderSteps[currentStep].metrics && index < orderSteps[currentStep].metrics!.length - 1 && (
+                            {index < metricsArray.length - 1 && (
                               <Separator size="4" />
                             )}
                           </motion.div>

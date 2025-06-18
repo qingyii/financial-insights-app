@@ -253,7 +253,7 @@ const QueryInterface: React.FC = () => {
                 fontFamily: 'monospace'
               }}>
                 <pre style={{ margin: 0, color: 'var(--green-11)', fontSize: '12px' }}>
-                  {response.sql}
+                  {response.sql || ''}
                 </pre>
               </Box>
               {response.explanation && (
@@ -280,12 +280,12 @@ const QueryInterface: React.FC = () => {
                 cursor: 'pointer',
                 marginBottom: 'var(--space-2)'
               }}>
-                <Text>Results ({response.results.length} rows)</Text>
+                <Text>Results ({response.results?.length || 0} rows)</Text>
               </Accordion.Trigger>
             </Accordion.Header>
             <Accordion.Content>
               <Box p="3">
-                {renderTableData(response.results)}
+                {renderTableData(response.results || [])}
               </Box>
             </Accordion.Content>
           </Accordion.Item>

@@ -316,7 +316,7 @@ const ERDiagram: React.FC = () => {
       markerEnd: {
         type: MarkerType.ArrowClosed,
         color: rel.color,
-      }
+      } as any
     }));
   }, []);
 
