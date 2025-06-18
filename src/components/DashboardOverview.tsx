@@ -35,10 +35,10 @@ const DashboardOverview: React.FC = () => {
     if (!recentOrders) return { totalVolume: 0, totalPnL: 0, successRate: 0, avgOrderSize: 0 };
 
     const totalVolume = recentOrders.reduce((sum: number, order: any) => 
-      sum + (order.order_quantity || 0), 0);
+      sum + (parseFloat(order.order_quantity) || 0), 0);
     
     const totalPnL = recentOrders.reduce((sum: number, order: any) => 
-      sum + (order.pnl || 0), 0);
+      sum + (parseFloat(order.pnl) || 0), 0);
     
     const filledOrders = recentOrders.filter((order: any) => 
       order.order_status === 'FILLED').length;
@@ -88,11 +88,11 @@ const DashboardOverview: React.FC = () => {
           
           const buyVolume = hourOrders
             .filter((o: any) => o.order_side === 'BUY')
-            .reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0);
+            .reduce((sum: number, o: any) => sum + (parseFloat(o.order_quantity) || 0), 0);
           
           const sellVolume = hourOrders
             .filter((o: any) => o.order_side === 'SELL')
-            .reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0);
+            .reduce((sum: number, o: any) => sum + (parseFloat(o.order_quantity) || 0), 0);
           
           // Use deterministic fallback data based on hour to avoid theme-switching issues
           const fallbackBuyVolume = buyVolume || (Math.sin(hourStart.getHours() * 0.5) * 20000 + 25000);
@@ -205,7 +205,7 @@ const DashboardOverview: React.FC = () => {
             <Box>
               <Text color="gray" size="2">Total P&L</Text>
               <Heading size="4" color={metrics.totalPnL > 0 ? 'green' : 'red'}>
-                ${metrics.totalPnL.toFixed(2)}
+                ${(metrics.totalPnL || 0).toFixed(2)}
               </Heading>
             </Box>
             {metrics.totalPnL > 0 ? 
@@ -219,7 +219,7 @@ const DashboardOverview: React.FC = () => {
           <Flex justify="between" align="center">
             <Box>
               <Text color="gray" size="2">Success Rate</Text>
-              <Heading size="4">{metrics.successRate.toFixed(1)}%</Heading>
+              <Heading size="4">{(metrics.successRate || 0).toFixed(1)}%</Heading>
             </Box>
             <ActivityLogIcon width="32" height="32" color="var(--ruby-9)" />
           </Flex>
@@ -515,9 +515,9 @@ const RecentTradingTable: React.FC<RecentTradingTableProps> = ({ orders }) => {
             </Table.Cell>
             <Table.Cell align="right">
               {order.average_fill_price ? 
-                `$${order.average_fill_price.toFixed(2)}` :
+                `$${parseFloat(order.average_fill_price).toFixed(2)}` :
                 order.order_price ? 
-                  `$${order.order_price.toFixed(2)}` :
+                  `$${parseFloat(order.order_price).toFixed(2)}` :
                   <Badge variant="soft" color="gray">Market</Badge>
               }
             </Table.Cell>
@@ -534,7 +534,7 @@ const RecentTradingTable: React.FC<RecentTradingTableProps> = ({ orders }) => {
             </Table.Cell>
             <Table.Cell align="right">
               <Text color={order.pnl > 0 ? 'green' : order.pnl < 0 ? 'red' : undefined}>
-                ${order.pnl?.toFixed(2) || '0.00'}
+                ${order.pnl ? parseFloat(order.pnl).toFixed(2) : '0.00'}
               </Text>
             </Table.Cell>
           </Table.Row>
