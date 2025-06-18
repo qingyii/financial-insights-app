@@ -9,7 +9,6 @@ import {
   Badge,
   Table,
   Flex,
-  Code,
   Separator,
   ScrollArea,
   Callout,
@@ -22,7 +21,6 @@ import {
   QuestionMarkCircledIcon,
   InfoCircledIcon,
   ClockIcon,
-  BarChartIcon,
   Share2Icon,
   MagnifyingGlassIcon,
   UpdateIcon
@@ -35,6 +33,7 @@ import { DatabaseGraphVisualization } from './DatabaseGraphVisualization';
 import { QueryResultCharts } from './QueryResultCharts';
 import { Neo4jSchemaGraphWrapper } from './Neo4jSchemaGraphWrapper';
 import { TableRelevanceVisualization } from './TableRelevanceVisualization';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 interface ConversationItem {
   id: string;
@@ -54,7 +53,7 @@ const QueryInterface: React.FC = () => {
   const queryMutation = useMutation({
     mutationFn: async (request: QueryRequest & { conversationId?: string }) => {
       const { conversationId, ...queryRequest } = request;
-      const response = await axios.post('http://localhost:3000/api/query', queryRequest);
+      const response = await axios.post(buildApiUrl(API_ENDPOINTS.QUERY), queryRequest);
       return { ...response.data, conversationId };
     },
     onSuccess: (data) => {
@@ -67,7 +66,7 @@ const QueryInterface: React.FC = () => {
         )
       );
     },
-    onError: (error, variables) => {
+    onError: (_error, variables) => {
       // Mark the conversation item as failed
       setConversation(prev => 
         prev.map(item => 

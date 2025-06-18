@@ -427,7 +427,7 @@ const OrderLifecycleAnimation: React.FC = () => {
                       <Heading size="4" mb="3">Real-time Values</Heading>
                       
                       <Box>
-                        {orderSteps[currentStep].metrics.map((metric, index) => (
+                        {orderSteps[currentStep].metrics?.map((metric, index) => (
                           <motion.div
                             key={index}
                             initial={{ opacity: 0, scale: 0.9 }}

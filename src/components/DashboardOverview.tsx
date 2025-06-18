@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowUpIcon, ArrowDownIcon, BarChartIcon, ActivityLogIcon } from '@radix-ui/react-icons';
 import { mockDataGenerator } from '@/services/mockDataGenerator';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 // Modern gradient colors for charts
 const COLORS = [
@@ -22,7 +23,7 @@ const DashboardOverview: React.FC = () => {
   const { data: recentOrders } = useQuery({
     queryKey: ['recentOrders'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:3000/api/orders/recent?limit=100');
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.RECENT_ORDERS, { limit: 100 }));
       return response.data;
     },
     refetchInterval: 5000

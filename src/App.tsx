@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Theme, Container, Tabs, Box, Heading, Flex, IconButton, Text } from '@radix-ui/themes';
+import { Theme, Container, Tabs, Box, Heading, Flex, IconButton } from '@radix-ui/themes';
 import '@radix-ui/themes/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SunIcon, MoonIcon } from '@radix-ui/react-icons';

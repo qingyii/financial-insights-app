@@ -3,7 +3,6 @@ import {
   OrderSide, 
   OrderType, 
   OrderStatus,
-  TimeInForce,
   DimSecurity,
   DimTrader,
   DimCounterparty,
@@ -51,7 +50,7 @@ const ORDER_TYPE_DESCRIPTIONS = {
 
 const EQUITY_SYMBOLS = Object.keys(EQUITY_DATA);
 const OPTION_UNDERLYINGS = ['SPY', 'QQQ', 'AAPL', 'TSLA', 'NVDA'];
-const EXCHANGES = ['NYSE', 'NASDAQ', 'CBOE', 'CME', 'OTC'];
+// const EXCHANGES = ['NYSE', 'NASDAQ', 'CBOE', 'CME', 'OTC'];
 const DESKS = ['Equity Trading', 'Derivatives', 'Fixed Income', 'FX', 'Commodities'];
 const COUNTERPARTY_NAMES = ['Goldman Sachs', 'Morgan Stanley', 'JP Morgan', 'Citadel', 'Virtu', 'Jane Street'];
 

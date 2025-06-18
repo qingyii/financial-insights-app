@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, Heading, Text, Grid, Badge, Separator, Table, Flex } from '@radix-ui/themes';
+import { Box, Card, Heading, Text, Grid, Badge, Table, Flex } from '@radix-ui/themes';
 import { SecurityType } from '@/models/types';
 
 interface AssetClassInfo {

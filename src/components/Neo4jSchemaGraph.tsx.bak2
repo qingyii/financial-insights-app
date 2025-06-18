@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   ReactFlow,
+  Node,
+  Edge,
   Controls,
   Background,
+  useNodesState,
+  useEdgesState,
   Handle,
   Position,
   NodeProps,
@@ -107,8 +111,8 @@ const nodeTypes = {
 };
 
 export const Neo4jSchemaGraph: React.FC = () => {
-  const [nodes, setNodes] = useState<any[]>([]);
-  const [edges, setEdges] = useState<any[]>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [joinPath, setJoinPath] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,14 +135,14 @@ export const Neo4jSchemaGraph: React.FC = () => {
       const { nodes: graphNodes, edges: graphEdges } = await neo4jSchemaService.getSchemaGraph();
       
       // Convert to ReactFlow format
-      const flowNodes = graphNodes.map((node, index) => ({
+      const flowNodes: Node[] = graphNodes.map((node, index) => ({
         id: node.id,
         type: 'table',
         position: getNodePosition(index, graphNodes.length),
         data: node.data
       }));
       
-      const flowEdges = graphEdges.map((edge: any) => ({
+      const flowEdges: Edge[] = graphEdges.map(edge => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
@@ -175,7 +179,7 @@ export const Neo4jSchemaGraph: React.FC = () => {
     };
   };
 
-  const onNodeClick = useCallback((_event: React.MouseEvent, node: any) => {
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     const tableName = node.id;
     
     setSelectedTables(prev => {
@@ -185,22 +189,6 @@ export const Neo4jSchemaGraph: React.FC = () => {
         return [...prev, tableName];
       }
     });
-  }, []);
-
-  const onNodesChange = useCallback((changes: any) => {
-    setNodes((nds) => {
-      return nds.map((node) => {
-        const change = changes.find((c: any) => c.id === node.id);
-        if (change && change.type === 'position' && change.position) {
-          return { ...node, position: change.position };
-        }
-        return node;
-      });
-    });
-  }, []);
-
-  const onEdgesChange = useCallback((_changes: any) => {
-    setEdges((eds) => eds);
   }, []);
 
   const findOptimalJoinPath = async () => {
@@ -315,7 +303,7 @@ export const Neo4jSchemaGraph: React.FC = () => {
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
           <Controls />
           <MiniMap 
-            nodeColor={(node: any) => {
+            nodeColor={node => {
               const data = node.data as unknown as TableNodeData;
               return data.type === 'fact' ? 'var(--ruby-9)' : 'var(--blue-9)';
             }}

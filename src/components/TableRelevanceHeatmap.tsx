@@ -29,7 +29,7 @@ interface TableRelevanceHeatmapProps {
   }>;
 }
 
-export const TableRelevanceHeatmap: React.FC<TableRelevanceHeatmapProps> = ({ query, relevanceData }) => {
+export const TableRelevanceHeatmap: React.FC<TableRelevanceHeatmapProps> = ({ relevanceData }) => {
   const [hoveredTable, setHoveredTable] = useState<string | null>(null);
 
   useEffect(() => {

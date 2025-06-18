@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Card, Text, Badge, Callout } from '@radix-ui/themes';
+import { Box, Card, Text, Badge, Callout, Flex } from '@radix-ui/themes';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import * as d3 from 'd3';
 import { motion } from 'framer-motion';
 
-interface BubbleData {
+interface BubbleData extends d3.SimulationNodeDatum {
   id: string;
   name: string;
   type: 'fact' | 'dimension';
@@ -23,7 +23,7 @@ interface TableRelevanceBubblesProps {
   }>;
 }
 
-export const TableRelevanceBubbles: React.FC<TableRelevanceBubblesProps> = ({ query, relevanceData }) => {
+export const TableRelevanceBubbles: React.FC<TableRelevanceBubblesProps> = ({ relevanceData }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredBubble, setHoveredBubble] = useState<BubbleData | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -114,11 +114,11 @@ export const TableRelevanceBubbles: React.FC<TableRelevanceBubblesProps> = ({ qu
 
     // Create force simulation
     const simulation = d3.forceSimulation<BubbleData>(bubbles)
-      .force('charge', d3.forceManyBody().strength(d => d.type === 'fact' ? -200 : -100))
-      .force('center', d3.forceCenter(0, 0))
+      .force('charge', d3.forceManyBody<BubbleData>().strength(d => d.type === 'fact' ? -200 : -100))
+      .force('center', d3.forceCenter<BubbleData>(0, 0))
       .force('collision', d3.forceCollide<BubbleData>().radius(d => d.size + 10))
-      .force('x', d3.forceX(0).strength(0.1))
-      .force('y', d3.forceY(0).strength(0.1));
+      .force('x', d3.forceX<BubbleData>(0).strength(0.1))
+      .force('y', d3.forceY<BubbleData>(0).strength(0.1));
 
     // Create bubble groups
     const bubbleGroups = g.selectAll('.bubble')
@@ -172,7 +172,7 @@ export const TableRelevanceBubbles: React.FC<TableRelevanceBubblesProps> = ({ qu
 
     // Update positions on simulation tick
     simulation.on('tick', () => {
-      bubbleGroups.attr('transform', d => `translate(${d.x}, ${d.y})`);
+      bubbleGroups.attr('transform', d => `translate(${d.x || 0}, ${d.y || 0})`);
     });
 
     // Animate bubbles on load

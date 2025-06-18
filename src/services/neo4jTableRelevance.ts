@@ -1,4 +1,4 @@
-import neo4j, { Driver, Session } from 'neo4j-driver';
+import neo4j, { Driver } from 'neo4j-driver';
 
 interface TableRelevance {
   table: string;
@@ -223,7 +223,7 @@ export class Neo4jTableRelevanceService {
         for (const record of result.records) {
           const table = record.get('table');
           const weight = record.get('weight');
-          const tags = record.get('tags') || [];
+          // const tags = record.get('tags') || [];
 
           if (!relevanceMap.has(table)) {
             relevanceMap.set(table, {
@@ -391,7 +391,7 @@ export class Neo4jTableRelevanceService {
   }
 
   async getQuerySuggestions(partialQuery: string): Promise<string[]> {
-    const context = this.extractQueryContext(partialQuery);
+    // const context = this.extractQueryContext(partialQuery);
     const relevantTables = await this.calculateTableRelevance(partialQuery);
     
     const suggestions: string[] = [];

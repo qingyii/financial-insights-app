@@ -12,7 +12,6 @@ import {
   Dialog,
   Flex,
   Select,
-  Separator,
   Callout
 } from '@radix-ui/themes';
 import {
@@ -25,6 +24,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import ERDiagramWithRelationships from './ERDiagramWithRelationships';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 interface Column {
   name: string;
@@ -53,14 +53,14 @@ const DataStructureManager: React.FC = () => {
   const { data: schema, isLoading } = useQuery({
     queryKey: ['schema'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:3000/api/schema');
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.SCHEMA));
       return response.data as Record<string, TableSchema>;
     }
   });
 
   const updateMutation = useMutation({
     mutationFn: async (params: any) => {
-      const response = await axios.post('http://localhost:3000/api/schema/update', params);
+      const response = await axios.post(buildApiUrl('/api/schema/update'), params);
       return response.data;
     },
     onSuccess: () => {

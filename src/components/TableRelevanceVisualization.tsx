@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, Heading, Text, Badge, Flex, TextArea, Button, Progress, Grid, Callout, Tabs } from '@radix-ui/themes';
-import { MagnifyingGlassIcon, InfoCircledIcon, LightningBoltIcon } from '@radix-ui/react-icons';
+import { Box, Card, Heading, Text, Badge, Flex, TextArea, Button, Progress, Grid, Tabs } from '@radix-ui/themes';
+import { MagnifyingGlassIcon, LightningBoltIcon } from '@radix-ui/react-icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { tableRelevanceService } from '@/services/neo4jTableRelevance';
 import { TableRelevanceBubbles } from './TableRelevanceBubbles';
@@ -187,7 +187,7 @@ export const TableRelevanceVisualization: React.FC = () => {
                     <Flex justify="between" align="start" mb="3">
                       <Box>
                         <Heading size="3" mb="1">{data.table}</Heading>
-                        <Badge color={getRelevanceColor(data.relevanceScore)} size="2">
+                        <Badge color={getRelevanceColor(data.relevanceScore) as "ruby" | "blue" | "brown" | "crimson" | "cyan" | "gold" | "gray" | "green" | "indigo" | "lime" | "orange" | "pink" | "plum" | "purple" | "red" | "teal" | "tomato" | "violet" | "yellow" | "grass" | "sky" | "mint" | "iris" | "jade" | "bronze" | "amber" | undefined} size="2">
                           {getRelevanceLabel(data.relevanceScore)}
                         </Badge>
                       </Box>
@@ -204,7 +204,7 @@ export const TableRelevanceVisualization: React.FC = () => {
                       <Progress 
                         value={data.relevanceScore * 100} 
                         size="2" 
-                        color={getRelevanceColor(data.relevanceScore) as any}
+                        color={getRelevanceColor(data.relevanceScore) as "ruby" | "blue" | "brown" | "crimson" | "cyan" | "gold" | "gray" | "green" | "indigo" | "lime" | "orange" | "pink" | "plum" | "purple" | "red" | "teal" | "tomato" | "violet" | "yellow" | "grass" | "sky" | "mint" | "iris" | "jade" | "bronze" | "amber" | undefined}
                       />
                     </Box>
 

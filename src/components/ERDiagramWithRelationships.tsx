@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Card, Text, Heading, Badge, Flex, Tabs, Callout } from '@radix-ui/themes';
+import { Box, Card, Text, Heading, Badge, Flex, Tabs, Callout, Table, Button } from '@radix-ui/themes';
 import { InfoCircledIcon, TableIcon, Link2Icon } from '@radix-ui/react-icons';
 import * as d3 from 'd3';
 
@@ -29,6 +29,11 @@ interface Relationship {
 const ERDiagramWithRelationships: React.FC = () => {
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [hoveredRelation, setHoveredRelation] = useState<Relationship | null>(null);
+  
+  // Debug selected table
+  useEffect(() => {
+    console.log('Selected table changed to:', selectedTable);
+  }, [selectedTable]);
 
   // Define the star schema tables
   const tables: Table[] = [
@@ -130,6 +135,9 @@ const ERDiagramWithRelationships: React.FC = () => {
   const drawERDiagram = () => {
     const svg = d3.select('#er-diagram-svg');
     svg.selectAll('*').remove();
+    
+    // Clear selected table when redrawing
+    setSelectedTable(null);
 
     const width = 1200;
     const height = 800;
@@ -160,7 +168,7 @@ const ERDiagramWithRelationships: React.FC = () => {
       const targetTable = tables.find(t => t.name === rel.target);
       
       if (sourceTable && targetTable) {
-        const line = g.append('line')
+        g.append('line')
           .attr('x1', sourceTable.x!)
           .attr('y1', sourceTable.y!)
           .attr('x2', targetTable.x!)
@@ -198,29 +206,49 @@ const ERDiagramWithRelationships: React.FC = () => {
     // Draw tables
     tables.forEach(table => {
       const tableGroup = g.append('g')
-        .attr('transform', `translate(${table.x! - 120}, ${table.y! - 80})`)
+        .attr('transform', `translate(${table.x! - 140}, ${table.y! - 80})`)
         .style('cursor', 'pointer')
-        .on('click', () => setSelectedTable(table.name));
+        .on('click', (event) => {
+          event.stopPropagation();
+          console.log('Table clicked:', table.name);
+          setSelectedTable(prevTable => {
+            console.log('Setting table from', prevTable, 'to', table.name);
+            return table.name;
+          });
+        })
+        .on('mouseenter', function() {
+          // Highlight the main table box
+          d3.select(this).select('rect').attr('stroke-width', 4);
+          // Change opacity to indicate it's clickable
+          d3.select(this).style('opacity', 0.95);
+        })
+        .on('mouseleave', function() {
+          d3.select(this).select('rect').attr('stroke-width', 2);
+          d3.select(this).style('opacity', 1);
+        });
 
       // Table background
+      const tableHeight = 40 + (Math.min(table.columns.length, 6) * 25) + 30; // header + columns + footer
+      
       tableGroup.append('rect')
-        .attr('width', 240)
-        .attr('height', 160)
+        .attr('width', 280)
+        .attr('height', tableHeight)
         .attr('rx', 8)
         .attr('fill', 'var(--gray-2)')
         .attr('stroke', table.type === 'fact' ? 'var(--ruby-9)' : 'var(--blue-9)')
-        .attr('stroke-width', 2);
+        .attr('stroke-width', 2)
+        .style('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))');
 
       // Table header
       tableGroup.append('rect')
-        .attr('width', 240)
+        .attr('width', 280)
         .attr('height', 40)
         .attr('rx', 8)
         .attr('fill', table.type === 'fact' ? 'var(--ruby-9)' : 'var(--blue-9)');
 
       // Table name
       tableGroup.append('text')
-        .attr('x', 120)
+        .attr('x', 140)
         .attr('y', 25)
         .attr('text-anchor', 'middle')
         .attr('fill', 'white')
@@ -228,25 +256,82 @@ const ERDiagramWithRelationships: React.FC = () => {
         .attr('font-size', '14px')
         .text(table.name);
 
-      // Show key columns
-      const keyColumns = table.columns.filter(c => c.isPK || c.isFK).slice(0, 4);
-      keyColumns.forEach((col, i) => {
+      // Show columns (up to 6)
+      const displayColumns = table.columns.slice(0, 6);
+      displayColumns.forEach((col, i) => {
+        const yPos = 55 + i * 22;
+        
+        // Column icon/badge
+        if (col.isPK) {
+          tableGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yPos)
+            .attr('font-size', '12px')
+            .attr('fill', 'var(--ruby-11)')
+            .text('PK');
+        } else if (col.isFK) {
+          tableGroup.append('text')
+            .attr('x', 15)
+            .attr('y', yPos)
+            .attr('font-size', '12px')
+            .attr('fill', 'var(--blue-11)')
+            .text('FK');
+        }
+        
+        // Column name
         tableGroup.append('text')
-          .attr('x', 10)
-          .attr('y', 60 + i * 20)
-          .attr('font-size', '12px')
-          .attr('fill', col.isPK ? 'var(--ruby-11)' : 'var(--blue-11)')
-          .text(`${col.isPK ? '🔑' : '🔗'} ${col.name}`);
+          .attr('x', col.isPK || col.isFK ? 40 : 15)
+          .attr('y', yPos)
+          .attr('font-size', '11px')
+          .attr('font-weight', col.isPK ? 'bold' : 'normal')
+          .attr('fill', col.isPK ? 'var(--ruby-11)' : col.isFK ? 'var(--blue-11)' : 'var(--gray-12)')
+          .text(col.name);
+          
+        // Column type
+        tableGroup.append('text')
+          .attr('x', 160)
+          .attr('y', yPos)
+          .attr('font-size', '10px')
+          .attr('fill', 'var(--gray-10)')
+          .text(col.type);
       });
 
-      // Column count
-      tableGroup.append('text')
-        .attr('x', 120)
-        .attr('y', 145)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '11px')
-        .attr('fill', 'var(--gray-11)')
-        .text(`${table.columns.length} columns`);
+      // Show "more columns" or "click to view" message
+      if (table.columns.length > 6) {
+        tableGroup.append('text')
+          .attr('x', 140)
+          .attr('y', tableHeight - 10)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '11px')
+          .attr('fill', 'var(--gray-10)')
+          .attr('font-style', 'italic')
+          .text(`... and ${table.columns.length - 6} more columns (click to view)`);
+      } else {
+        tableGroup.append('text')
+          .attr('x', 140)
+          .attr('y', tableHeight - 10)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '10px')
+          .attr('fill', 'var(--gray-9)')
+          .text('Click to view details');
+      }
+      
+      // Add a transparent overlay for better click handling
+      tableGroup.append('rect')
+        .attr('width', 280)
+        .attr('height', tableHeight)
+        .attr('rx', 8)
+        .attr('fill', 'transparent')
+        .attr('cursor', 'pointer')
+        .attr('pointer-events', 'all')
+        .on('click', (event) => {
+          event.stopPropagation();
+          console.log('Overlay clicked for table:', table.name);
+          setSelectedTable(prevTable => {
+            console.log('Overlay setting table from', prevTable, 'to', table.name);
+            return table.name;
+          });
+        });
     });
   };
 
@@ -270,8 +355,13 @@ const ERDiagramWithRelationships: React.FC = () => {
 
         <Tabs.Content value="diagram">
           <Card>
-            <Box position="relative">
-              <svg id="er-diagram-svg" width="1200" height="800" viewBox="0 0 1200 800" />
+            <Box position="relative" style={{ width: '100%', height: '800px', overflow: 'hidden' }}>
+              <svg id="er-diagram-svg" width="100%" height="100%" viewBox="0 0 1200 800" style={{ display: 'block' }} />
+              
+              {/* Debug info */}
+              <Box position="absolute" bottom="10" right="10" style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', padding: '8px', borderRadius: '4px', zIndex: 1001 }}>
+                <Text size="1">Selected: {selectedTable || 'None'}</Text>
+              </Box>
               
               {hoveredRelation && (
                 <Box position="absolute" top="20" right="20" style={{ maxWidth: '300px' }}>
@@ -285,31 +375,110 @@ const ERDiagramWithRelationships: React.FC = () => {
               )}
 
               {selectedTable && (
-                <Box position="absolute" bottom="20" left="20" style={{ maxWidth: '400px', maxHeight: '300px', overflow: 'auto' }}>
-                  <Card>
-                    <Heading size="3" mb="2">{selectedTable}</Heading>
-                    <Box>
-                      {tables.find(t => t.name === selectedTable)?.columns.map((col, i) => (
-                        <Flex key={i} gap="2" mb="1">
-                          {col.isPK && <Badge size="1" color="ruby">PK</Badge>}
-                          {col.isFK && <Badge size="1" color="blue">FK</Badge>}
-                          <Text size="2" style={{ fontFamily: 'monospace' }}>{col.name}</Text>
-                          <Text size="1" color="gray">{col.type}</Text>
-                        </Flex>
-                      ))}
+                <Box 
+                  position="absolute" 
+                  top="20" 
+                  left="20" 
+                  style={{ 
+                    maxWidth: '500px', 
+                    maxHeight: 'calc(100% - 40px)',
+                    zIndex: 1000,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  <Card style={{ 
+                    backgroundColor: 'var(--gray-1)', 
+                    border: '2px solid var(--gray-6)',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <Box style={{ padding: 'var(--space-3)' }}>
+                      <Flex justify="between" align="center" mb="3">
+                        <Heading size="4">{selectedTable}</Heading>
+                        <Badge 
+                          size="2" 
+                          color={tables.find(t => t.name === selectedTable)?.type === 'fact' ? 'ruby' : 'blue'}
+                        >
+                          {tables.find(t => t.name === selectedTable)?.type === 'fact' ? 'FACT' : 'DIMENSION'}
+                        </Badge>
+                      </Flex>
+                      
+                      <Text size="2" color="gray">
+                        Total columns: {tables.find(t => t.name === selectedTable)?.columns.length || 0}
+                      </Text>
+                    </Box>
+                    
+                    <Box style={{ 
+                      flex: 1, 
+                      overflowY: 'auto', 
+                      padding: '0 var(--space-3)',
+                      marginBottom: 'var(--space-3)'
+                    }}>
+                      <Table.Root size="1">
+                        <Table.Header>
+                          <Table.Row>
+                            <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>Column Name</Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>Data Type</Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>References</Table.ColumnHeaderCell>
+                          </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                          {tables.find(t => t.name === selectedTable)?.columns.map((col, i) => (
+                            <Table.Row key={i}>
+                              <Table.Cell>
+                                {col.isPK && <Badge size="1" color="ruby" variant="solid">PK</Badge>}
+                                {col.isFK && <Badge size="1" color="blue" variant="solid">FK</Badge>}
+                                {!col.isPK && !col.isFK && <Badge size="1" color="gray" variant="soft">COL</Badge>}
+                              </Table.Cell>
+                              <Table.Cell>
+                                <Text size="2" weight={col.isPK ? "bold" : "regular"} style={{ fontFamily: 'monospace' }}>
+                                  {col.name}
+                                </Text>
+                              </Table.Cell>
+                              <Table.Cell>
+                                <Text size="1" color="gray">{col.type}</Text>
+                              </Table.Cell>
+                              <Table.Cell>
+                                {col.references && (
+                                  <Text size="1" color="blue">→ {col.references}</Text>
+                                )}
+                              </Table.Cell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table.Root>
+                    </Box>
+                    
+                    <Box style={{ 
+                      padding: 'var(--space-3)', 
+                      borderTop: '1px solid var(--gray-6)' 
+                    }}>
+                      <Button 
+                        size="2" 
+                        variant="soft" 
+                        onClick={() => setSelectedTable(null)}
+                        style={{ width: '100%' }}
+                      >
+                        Close
+                      </Button>
                     </Box>
                   </Card>
                 </Box>
               )}
             </Box>
 
-            <Callout.Root mt="4" size="1">
+            <Callout.Root mt="4" size="1" color="blue">
               <Callout.Icon>
                 <InfoCircledIcon />
               </Callout.Icon>
               <Callout.Text>
-                This star schema shows the central fact table (fact_trading_orders) connected to dimension tables. 
-                Click on tables to see their columns. Hover over relationships to see the connected columns.
+                <strong>Interactive Features:</strong> Click on any table to view all columns and data types. 
+                Hover over relationship lines to see foreign key connections. 
+                The fact table (red) is at the center with dimension tables (blue) surrounding it.
               </Callout.Text>
             </Callout.Root>
           </Card>

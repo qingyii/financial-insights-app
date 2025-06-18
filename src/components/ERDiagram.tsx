@@ -11,6 +11,7 @@ import {
   Background,
   BackgroundVariant,
   NodeTypes,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Box, Card, Text, Heading, Badge, Flex } from '@radix-ui/themes';
@@ -313,13 +314,13 @@ const ERDiagram: React.FC = () => {
         strokeWidth: 2,
       },
       markerEnd: {
-        type: 'arrowclosed',
+        type: MarkerType.ArrowClosed,
         color: rel.color,
       }
     }));
   }, []);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onConnect = useCallback(

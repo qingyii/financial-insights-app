@@ -5,9 +5,6 @@ import { promisify } from 'util';
 import { mockDataGenerator } from './mockDataGenerator';
 import { createViewsSQL } from './createViews';
 import type { 
-  DimSecurity, 
-  DimTrader, 
-  DimCounterparty,
   FactTradingOrder 
 } from '@/models/types';
 
@@ -16,7 +13,7 @@ export class DatabaseService {
   private initialized = false;
   private run: (sql: string, params?: any) => Promise<void>;
   private all: (sql: string, params?: any) => Promise<any[]>;
-  private get: (sql: string, params?: any) => Promise<any>;
+  // private _get: (sql: string, params?: any) => Promise<any>;
 
   constructor(dbPath: string = './data/trading.db') {
     this.db = new sqlite3.Database(dbPath);
@@ -24,7 +21,7 @@ export class DatabaseService {
     // Promisify database methods
     this.run = promisify(this.db.run.bind(this.db));
     this.all = promisify(this.db.all.bind(this.db));
-    this.get = promisify(this.db.get.bind(this.db));
+    // this._get = promisify(this.db.get.bind(this.db));
     
     // Enable foreign keys
     this.db.run('PRAGMA foreign_keys = ON');

@@ -263,14 +263,14 @@ export class Neo4jSchemaService {
 
   private findOptimalJoinPathInMemory(tables: string[]): string[] {
     // Simple in-memory implementation
-    const graph: Record<string, string[]> = {
+    /* const _graph: Record<string, string[]> = {
       'fact_trading_orders': ['dim_security', 'dim_trader', 'dim_time', 'dim_counterparty', 'dim_order_type'],
       'dim_security': ['fact_trading_orders'],
       'dim_trader': ['fact_trading_orders'],
       'dim_time': ['fact_trading_orders'],
       'dim_counterparty': ['fact_trading_orders'],
       'dim_order_type': ['fact_trading_orders']
-    };
+    }; */
 
     // If fact table is involved, it's the hub
     if (tables.includes('fact_trading_orders')) {

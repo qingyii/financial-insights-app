@@ -34,26 +34,49 @@ export class TextToSQLService {
     this.queryHistory = [];
   }
 
-  async getSchemaInfo() {
-    if (this.schemaCache) return this.schemaCache;
+  async getSchemaInfo(forceReload = false) {
+    if (this.schemaCache && !forceReload) return this.schemaCache;
     
     const tables = await db.executeQuery(`
       SELECT name, sql FROM sqlite_master 
-      WHERE type='table' AND name NOT LIKE 'sqlite_%'
+      WHERE (type='table' OR type='view') AND name NOT LIKE 'sqlite_%'
     `);
     
     const schema = {};
     for (const table of tables) {
-      const columns = await db.executeQuery(`PRAGMA table_info(${table.name})`);
-      schema[table.name] = {
-        sql: table.sql,
-        columns: columns.map(col => ({
-          name: col.name,
-          type: col.type,
-          pk: col.pk === 1,
-          notnull: col.notnull === 1
-        }))
-      };
+      // For views, we need to parse the SQL to get columns since PRAGMA table_info doesn't work well with views
+      if (table.name.startsWith('v_')) {
+        // For views, extract basic info from the CREATE VIEW statement
+        const viewMatch = table.sql.match(/SELECT\s+(.*?)\s+FROM/is);
+        const columnsList = viewMatch ? viewMatch[1] : '';
+        const columnNames = columnsList.split(',').map(col => {
+          // Extract column alias or name
+          const aliasMatch = col.trim().match(/(?:.*\s+AS\s+)?(\w+)\s*$/i);
+          return aliasMatch ? aliasMatch[1] : col.trim();
+        });
+        
+        schema[table.name] = {
+          sql: table.sql,
+          columns: columnNames.map(name => ({
+            name: name,
+            type: 'VIEW_COLUMN',
+            pk: false,
+            notnull: false
+          }))
+        };
+      } else {
+        // For tables, use PRAGMA table_info
+        const columns = await db.executeQuery(`PRAGMA table_info(${table.name})`);
+        schema[table.name] = {
+          sql: table.sql,
+          columns: columns.map(col => ({
+            name: col.name,
+            type: col.type,
+            pk: col.pk === 1,
+            notnull: col.notnull === 1
+          }))
+        };
+      }
     }
     
     this.schemaCache = schema;

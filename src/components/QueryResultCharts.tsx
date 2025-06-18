@@ -16,11 +16,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
   Treemap
 } from 'recharts';
 
@@ -31,7 +26,7 @@ interface QueryResultChartsProps {
 
 const COLORS = ['#E73C7E', '#23A6D5', '#23D5AB', '#FFA726', '#AB47BC', '#66BB6A', '#29B6F6', '#EF5350'];
 
-export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, queryType }) => {
+export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data }) => {
   const [chartType, setChartType] = React.useState('auto');
   
   // Calculate responsive font sizes based on container width
@@ -259,14 +254,9 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
                   const percent = ((entry.value / pieTotal) * 100).toFixed(1);
                   return `${percent}%`;
                 }}
-                labelStyle={{ 
-                  fontSize: Math.max(fontSize.label, 12), 
-                  fontWeight: 600,
-                  fill: 'var(--gray-12)'
-                }}
                 labelLine={false}
               >
-                {pieData.map((entry, index) => (
+                {pieData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -312,14 +302,9 @@ export const QueryResultCharts: React.FC<QueryResultChartsProps> = ({ data, quer
                   const percent = ((entry.value / total) * 100).toFixed(1);
                   return `${percent}%`;
                 }}
-                labelStyle={{ 
-                  fontSize: Math.max(fontSize.label, 12), 
-                  fontWeight: 600,
-                  fill: 'var(--gray-12)'
-                }}
                 labelLine={false}
               >
-                {donutData.map((entry, index) => (
+                {donutData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

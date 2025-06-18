@@ -37,9 +37,6 @@ const DataFlowDiagram: React.FC<DataFlowDiagramProps> = memo(({ currentStep }) =
     if (!svgRef.current) return;
 
     const svg = d3.select(svgRef.current);
-    const width = 600;
-    const height = 500;
-
     // Clear existing content
     svg.selectAll('*').remove();
 
@@ -57,7 +54,7 @@ const DataFlowDiagram: React.FC<DataFlowDiagramProps> = memo(({ currentStep }) =
       .attr('fill', 'var(--ruby-9)');
 
     // Draw connections
-    const links = svg.selectAll('.link')
+    svg.selectAll('.link')
       .data(connections)
       .enter()
       .append('line')
