@@ -59,6 +59,9 @@ dependencies:
   langchain:
     specifier: 0.1.36
     version: 0.1.36(axios@1.6.5)(neo4j-driver@5.28.1)(openai@4.24.1)(ws@8.16.0)
+  lucide-react:
+    specifier: ^0.523.0
+    version: 0.523.0(react@18.2.0)
   neo4j-driver:
     specifier: ^5.28.1
     version: 5.28.1
@@ -5175,6 +5178,14 @@ packages:
       yallist: 4.0.0
     dev: false
     optional: true
+
+  /lucide-react@0.523.0(react@18.2.0):
+    resolution: {integrity: sha512-rUjQoy7egZT9XYVXBK1je9ckBnNp7qzRZOhLQx5RcEp2dCGlXo+mv6vf7Am4LimEcFBJIIZzSGfgTqc9QCrPSw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    dependencies:
+      react: 18.2.0
+    dev: false
 
   /make-fetch-happen@9.1.0:
     resolution: {integrity: sha512-+zopwDy7DNknmwPQplem5lAZX/eCOzSvSNNcSKm5eVwTkOBzoktEfXsa9L23J/GIRhxRsaxzkPEhrJEpE2F4Gg==}

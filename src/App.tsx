@@ -8,6 +8,7 @@ import QueryInterface from '@/components/QueryInterface';
 import DataStructureManager from '@/components/DataStructureManager';
 import DashboardOverview from '@/components/DashboardOverview';
 import { AssetClassEducation } from '@/components/AssetClassEducation';
+import { AIProductPortfolio } from '@/components/AIProductPortfolio';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ function AppContent() {
                 <Tabs.Trigger value="query">Query Analysis</Tabs.Trigger>
                 <Tabs.Trigger value="structure">Data Structure</Tabs.Trigger>
                 <Tabs.Trigger value="education">Asset Classes</Tabs.Trigger>
+                <Tabs.Trigger value="portfolio">Case Studies</Tabs.Trigger>
               </Tabs.List>
             </Tabs.Root>
           </Container>
@@ -80,6 +82,7 @@ function AppContent() {
             {activeTab === 'query' && <QueryInterface />}
             {activeTab === 'structure' && <DataStructureManager />}
             {activeTab === 'education' && <AssetClassEducation />}
+            {activeTab === 'portfolio' && <AIProductPortfolio />}
           </Container>
         </Box>
       </Theme>
