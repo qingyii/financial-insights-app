@@ -73,10 +73,10 @@ export const AIProductPortfolio: React.FC = () => {
         <Flex justify="between" align="start">
           <Box>
             <Heading size="8" mb="2">Product Case Study</Heading>
-            <Text size="5" color="gray" mb="4">
-              Transforming Financial Data Access Through Conversational AI
-            </Text>
-            <Text size="3" mb="4">
+            <Text size="3" mb="4" style={{ lineHeight: '1.8', maxWidth: '800px' }}>
+              <span style={{ color: 'var(--gray-11)' }}>Transforming Financial Data Access Through Conversational AI</span>
+              <br />
+              <br />
               Led the development of an AI-powered analytics platform that democratizes financial data access,
               reducing query time by 95% and generating $1.2M ARR in 8 months.
             </Text>
